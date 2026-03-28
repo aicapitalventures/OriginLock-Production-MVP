@@ -1,0 +1,633 @@
+Build a production-grade MVP web application called OriginLock.
+
+OriginLock is a creator verification infrastructure platform for musicians, writers, designers, filmmakers, freelancers, agencies, indie labels, and content creators.
+
+CORE PRODUCT PROMISE:
+A user uploads a file and receives a proof-of-creation record that includes:
+1. a SHA-256 file fingerprint
+2. a recorded UTC timestamp
+3. a creator claim record
+4. a unique certificate ID
+5. a downloadable PDF certificate
+6. a public verification page
+
+POSITIONING:
+OriginLock is not a copyright registration replacement.
+OriginLock is not legal advice.
+OriginLock is a proof-of-existence, timestamped creator evidence, and verification certificate system for creators who need documentation before sharing work with collaborators, clients, labels, or partners.
+
+PRIMARY WEDGE:
+Pitch protection and collaboration proof for independent creators.
+
+SUPPORTED FILE TYPES FOR MVP:
+- mp3
+- wav
+- mp4
+- pdf
+- png
+- jpg
+- jpeg
+
+TECH STACK:
+Use this stack unless a small technical adjustment is required for successful implementation in Replit:
+- Next.js 15 with App Router
+- TypeScript
+- Tailwind CSS
+- Prisma ORM
+- PostgreSQL
+- Supabase Auth
+- Supabase Storage
+- Zod validation
+- pdf-lib for PDF generation
+- qrcode for QR generation
+- Node crypto for SHA-256 hashing
+
+GENERAL BUILD STANDARDS:
+- production-grade code quality
+- clean architecture
+- strong TypeScript typing
+- reusable components
+- responsive design
+- clear loading, empty, and error states
+- maintainable folder structure
+- polished but restrained UI
+- no toy or demo feel
+- no childish design
+- reliability first
+- correctness first
+- maintainability first
+
+CRITICAL EXECUTION RULE:
+Do not stop at a landing page mockup.
+Do not build fake demo flows for the core product.
+The core upload, hash, timestamp, certificate record, and verification flow must be real and runnable.
+
+DESIGN DIRECTION:
+The UI must feel premium, minimal, serious, modern, and trustworthy.
+Think legal-tech meets creator infrastructure.
+The product should feel like a secure proof vault.
+Use:
+- dark navy or graphite base tones
+- light surfaces where needed
+- restrained accent color
+- elegant typography
+- quiet spacing
+- minimal refined shadows
+- strong information hierarchy
+
+Avoid:
+- cartoonish visuals
+- playful UI patterns
+- oversized gradients
+- cluttered layouts
+- generic startup template feel
+
+ALLOWED PRODUCT LANGUAGE:
+- proof of creation
+- proof of existence
+- timestamped evidence
+- creator claim record
+- verification certificate
+- documentation for disputes and collaboration
+
+FORBIDDEN PRODUCT LANGUAGE:
+- guaranteed legal ownership
+- instant copyright
+- copyright replacement
+- guaranteed legal protection
+- court-proof ownership
+
+ROUTES TO IMPLEMENT:
+
+Public routes:
+- /
+- /pricing
+- /verify
+- /verify/[certificateId]
+- /login
+- /signup
+- /forgot-password
+- /terms
+- /privacy
+- /legal
+
+Authenticated routes:
+- /dashboard
+- /dashboard/upload
+- /dashboard/files/[id]
+- /dashboard/projects
+- /dashboard/projects/[id]
+- /dashboard/profile
+- /dashboard/settings
+
+DATABASE REQUIREMENTS:
+Use Prisma with PostgreSQL.
+
+Create these Prisma models:
+- User
+- CreatorProfile
+- Project
+- FileRecord
+- TimestampRecord
+- Certificate
+- VerificationEvent
+- AuditLog
+
+Use this schema structure exactly unless a small technical adjustment is required for implementation:
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PrivacyMode {
+  private
+  shareable_certificate
+  public_verification
+}
+
+enum CertificateStatus {
+  valid
+  revoked
+  superseded
+}
+
+enum VerificationResult {
+  match
+  mismatch
+  not_found
+  invalid
+}
+
+model User {
+  id              String          @id @default(uuid())
+  email           String          @unique
+  passwordHash    String?
+  emailVerified   Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  creatorProfile  CreatorProfile?
+  projects        Project[]
+  files           FileRecord[]
+  auditLogs       AuditLog[]
+}
+
+model CreatorProfile {
+  id             String      @id @default(uuid())
+  userId         String      @unique
+  displayName    String
+  creatorHandle  String      @unique
+  legalName      String?
+  pseudonym      String?
+  bio            String?
+  websiteUrl     String?
+  claimStatement String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files          FileRecord[]
+}
+
+model Project {
+  id           String       @id @default(uuid())
+  userId       String
+  title        String
+  description  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files        FileRecord[]
+}
+
+model FileRecord {
+  id               String         @id @default(uuid())
+  userId           String
+  projectId        String?
+  creatorProfileId String
+  originalFilename String
+  storedFilename   String?
+  fileType         String
+  mimeType         String
+  fileSizeBytes    BigInt
+  sha256Hash       String         @db.Char(64)
+  storagePath      String?
+  title            String
+  notes            String?
+  privacyMode      PrivacyMode    @default(private)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  creatorProfile   CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade)
+  timestamp        TimestampRecord?
+  certificate      Certificate?
+}
+
+model TimestampRecord {
+  id                String      @id @default(uuid())
+  fileId            String      @unique
+  recordedAtUtc     DateTime
+  providerName      String?
+  providerReference String?
+  providerPayload   Json?
+  createdAt         DateTime    @default(now())
+
+  file              FileRecord  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+}
+
+model Certificate {
+  id                 String              @id @default(uuid())
+  fileId             String              @unique
+  certificateId      String              @unique
+  status             CertificateStatus   @default(valid)
+  verificationToken  String              @unique
+  publicUrl          String
+  pdfPath            String?
+  qrCodePath         String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  file               FileRecord          @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  verificationEvents VerificationEvent[]
+}
+
+model VerificationEvent {
+  id              String              @id @default(uuid())
+  certificateDbId String
+  eventType       String
+  ipAddress       String?
+  userAgent       String?
+  submittedHash   String?             @db.Char(64)
+  result          VerificationResult
+  createdAt       DateTime            @default(now())
+
+  certificate     Certificate         @relation(fields: [certificateDbId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  userId     String?
+  entityType String
+  entityId   String?
+  action     String
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+LANDING PAGE REQUIREMENTS:
+Build a polished homepage with:
+1. Hero
+   Headline:
+   Prove what existed, when it existed.
+
+   Subheadline:
+   Upload music, video, images, and documents. Receive a verifiable proof record with a timestamp, creator claim, and downloadable certificate in seconds.
+
+   Primary CTA:
+   Protect a file
+
+   Secondary CTA:
+   Verify a certificate
+
+2. Trust/value section
+3. How it works
+4. Supported file types
+5. Use cases
+6. FAQ
+7. Footer with links to pricing, verify, legal, privacy, and terms
+
+PRICING PAGE REQUIREMENTS:
+Create a polished pricing page with:
+- Free plan
+- Creator plan marked Coming soon
+- Pro plan marked Coming soon
+
+VERIFY PAGE REQUIREMENTS:
+There are two verification experiences:
+
+1. /verify
+- certificate ID input
+- verify button
+- concise explanation
+
+2. /verify/[certificateId]
+Show:
+- certificate status
+- creator display name
+- creator handle
+- project title
+- file title
+- recorded timestamp
+- file metadata summary
+- SHA-256 hash preview
+- optional local file upload for hash comparison
+
+HASH COMPARISON FLOW:
+Allow a visitor to upload a local file and compare its SHA-256 hash against the stored hash.
+Display these result states:
+- match
+- mismatch
+- not found
+- invalid
+- revoked
+- superseded
+
+VERIFICATION EVENT LOGGING:
+On every verification attempt, create a verification event record containing:
+- certificate reference
+- event type
+- IP address if available
+- user agent if available
+- submitted hash if applicable
+- result
+- timestamp
+
+AUTHENTICATION SYSTEM:
+Implement:
+- signup
+- login
+- logout
+- forgot password
+- protected dashboard routes
+
+Use Supabase Auth for authentication.
+Store creator-specific metadata in the app database.
+
+PROFILE SYSTEM:
+Authenticated users can create and update a creator profile with:
+- display name
+- creator handle
+- legal name optional
+- pseudonym optional
+- bio optional
+- website URL optional
+- claim statement optional
+
+PROJECT SYSTEM:
+Users can create projects and attach uploaded files to them.
+Project fields:
+- title
+- description
+
+DASHBOARD REQUIREMENTS:
+Create a polished dashboard with:
+- summary cards
+- recent records table
+- quick actions
+
+Summary cards:
+- protected files
+- projects
+- certificates
+- verification checks
+
+Quick actions:
+- upload file
+- create project
+- update profile
+- verify certificate
+
+UPLOAD PAGE REQUIREMENTS:
+Build a polished upload flow with:
+- drag and drop uploader
+- click to browse
+- accepted file type messaging
+- file validation
+- title field
+- notes field
+- project selection dropdown
+- create new project inline or in modal
+- privacy mode selection
+
+PRIVACY MODES:
+Implement:
+- private
+- shareable_certificate
+- public_verification
+
+UPLOAD FLOW REQUIREMENTS:
+When a user uploads a file:
+1. validate file type and size
+2. store original file in Supabase Storage
+3. compute SHA-256 hash
+4. save metadata in database
+5. create timestamp record with UTC time
+6. generate a unique human-readable certificate ID
+7. generate a unique verification token
+8. create certificate database record
+9. generate a PDF certificate
+10. generate a QR code pointing to the verification page
+11. save PDF path and QR code path
+12. show a success state with:
+   - certificate ID
+   - download certificate button
+   - copy verification link button
+   - open record detail page button
+
+UPLOAD DETAIL PAGE REQUIREMENTS:
+The file detail page must show:
+- title
+- original filename
+- file type
+- mime type
+- file size
+- project
+- notes
+- SHA-256 hash
+- timestamp
+- certificate ID
+- certificate status
+- verification link
+- PDF download button
+- activity or audit summary if available
+
+PROJECTS PAGE REQUIREMENTS:
+Show:
+- list of projects
+- number of linked files
+- updated timestamp
+- create project button
+
+PROJECT DETAIL PAGE REQUIREMENTS:
+Show:
+- project title
+- description
+- all linked files
+- file counts
+- links to each file record
+
+SETTINGS PAGE REQUIREMENTS:
+Allow users to manage:
+- account email display
+- password reset
+- privacy defaults
+- delete account flow placeholder if needed for MVP
+
+CERTIFICATE GENERATION REQUIREMENTS:
+Generate a downloadable PDF certificate for each uploaded file.
+The PDF must contain:
+- OriginLock branding
+- certificate ID
+- certificate status
+- creator display name
+- creator handle
+- project title if present
+- file title
+- original filename
+- file type
+- file size
+- SHA-256 hash
+- UTC timestamp
+- verification URL
+- QR code
+- exact footer disclaimer below
+
+Use this exact footer disclaimer:
+This certificate records a file fingerprint, claimant profile, and recorded timestamp for documentation and verification purposes. It is not a substitute for formal copyright registration or legal advice.
+
+SECURITY REQUIREMENTS:
+Implement:
+- file MIME validation
+- extension validation
+- file size limits
+- protected routes
+- signed URLs for private assets when needed
+- rate limiting for verify endpoints
+- server-side validation with Zod
+- audit logs for key actions
+- safe file upload handling
+- no exposure of private original files on public verification pages
+
+FILE STORAGE AND PRIVACY LOGIC:
+- original uploaded files must remain private by default
+- public verification should expose certificate metadata only
+- do not expose raw original file downloads publicly
+- hash comparison should work using a visitor-uploaded local file against the stored hash
+- privacy mode must govern certificate visibility
+
+ENVIRONMENT VARIABLES:
+Create a .env.example with placeholders for:
+- DATABASE_URL
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+- NEXT_PUBLIC_APP_URL
+
+TIMESTAMP ARCHITECTURE REQUIREMENT:
+For MVP, internal server-side UTC timestamp recording is acceptable.
+However, structure the code so an external timestamp authority provider can be added later through an adapter or service abstraction.
+
+SUGGESTED CODE ORGANIZATION:
+- app
+- components
+- lib
+- prisma
+- types
+
+Suggested lib modules:
+- lib/auth
+- lib/storage
+- lib/hash
+- lib/certificates
+- lib/verification
+- lib/audit
+- lib/validation
+
+MANDATORY IMPLEMENTATION PHASES:
+
+PHASE 1 — FOUNDATION
+- scaffold project
+- set up theme
+- create Prisma schema
+- create env template
+- wire Supabase Auth
+- create base layout and navigation
+- create database migrations
+
+PHASE 2 — CORE PRODUCT
+- dashboard shell
+- creator profile flow
+- project creation
+- upload page
+- file validation
+- storage upload
+- SHA-256 hashing
+- metadata save
+- timestamp record save
+- certificate record save
+- upload success state
+- file detail page
+
+PHASE 3 — PROOF OUTPUTS
+- PDF certificate generation
+- QR generation
+- verification URL generation
+- certificate download action
+
+PHASE 4 — PUBLIC VERIFICATION
+- verify index page
+- verify detail page
+- hash comparison
+- verification result states
+- verification event logging
+
+PHASE 5 — HARDENING AND POLISH
+- audit logs
+- legal pages
+- pricing page
+- loading states
+- error states
+- empty states
+- README
+- polish responsive design
+
+DEFINITION OF DONE:
+The MVP is only complete if the following flows work end-to-end:
+1. user can sign up and log in
+2. user can create a creator profile
+3. user can create a project
+4. user can upload a supported file
+5. system computes SHA-256 hash
+6. system stores metadata and timestamp in database
+7. system creates a certificate record
+8. system generates a PDF certificate
+9. user can open the file detail page and download the certificate
+10. public user can verify a certificate by certificate ID
+11. public user can upload a local file and compare it against the stored hash
+12. verification attempts are logged
+
+FALLBACK RULES:
+- if external timestamp authority is not integrated, use internal UTC timestamps for MVP
+- if delete account is too large for MVP, leave a clearly marked placeholder
+- if advanced team features are too large, do not build them
+- if PDF styling becomes complex, ship a clean functional PDF first, then improve styling
+- do not sacrifice core product functionality for decorative polish
+
+README REQUIREMENTS:
+Include:
+- product overview
+- stack overview
+- local setup
+- environment variable setup
+- database migration steps
+- Supabase setup notes
+- how certificate generation works
+- how verification works
+- MVP limitations
+- legal disclaimer notes
+
+OUTPUT EXPECTATION:
+Produce a working, polished MVP that feels credible and production-oriented, not a mockup.
+Create real files and real application logic.
+Favor correctness, maintainability, and runnable functionality over excessive extras.
+When making tradeoffs, choose the path most likely to run correctly in Replit with minimal friction.

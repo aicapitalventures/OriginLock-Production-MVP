@@ -1,22 +1,33 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: OriginLock API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: profile
+    description: Creator profile operations
+  - name: projects
+    description: Project operations
+  - name: files
+    description: File record operations
+  - name: certificates
+    description: Certificate operations
+  - name: verification
+    description: Verification operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +35,584 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/signup:
+    post:
+      operationId: signup
+      tags: [auth]
+      summary: Sign up a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      tags: [auth]
+      summary: Send password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordBody"
+      responses:
+        "200":
+          description: Reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordBody"
+      responses:
+        "200":
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      summary: Get creator profile
+      responses:
+        "200":
+          description: Creator profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorProfileResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createProfile
+      tags: [profile]
+      summary: Create creator profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProfileBody"
+      responses:
+        "201":
+          description: Profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorProfileResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateProfile
+      tags: [profile]
+      summary: Update creator profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileBody"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorProfileResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List user projects
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a new project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectBody"
+      responses:
+        "201":
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetailResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectBody"
+      responses:
+        "200":
+          description: Project updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /files:
+    get:
+      operationId: listFiles
+      tags: [files]
+      summary: List user files
+      responses:
+        "200":
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FileRecordResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /files/upload:
+    post:
+      operationId: uploadFile
+      tags: [files]
+      summary: Upload a file and create a proof record
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - title
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+                notes:
+                  type: ["string", "null"]
+                projectId:
+                  type: ["string", "null"]
+                privacyMode:
+                  type: string
+                  enum: [private, shareable_certificate, public_verification]
+      responses:
+        "201":
+          description: File uploaded and proof record created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /files/{id}:
+    get:
+      operationId: getFile
+      tags: [files]
+      summary: Get a file record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileRecordDetailResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateFile
+      tags: [files]
+      summary: Update a file record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFileBody"
+      responses:
+        "200":
+          description: File updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileRecordResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /files/{id}/certificate/download:
+    get:
+      operationId: downloadCertificate
+      tags: [certificates]
+      summary: Download the PDF certificate for a file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /verify/{certificateId}:
+    get:
+      operationId: verifyCertificate
+      tags: [verification]
+      summary: Get certificate verification data
+      parameters:
+        - name: certificateId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: submittedHash
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationResponse"
+        "404":
+          description: Certificate not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [files]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStatsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +623,466 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        emailVerified:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        hasProfile:
+          type: boolean
+      required:
+        - id
+        - email
+        - emailVerified
+        - createdAt
+        - hasProfile
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserResponse"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    SignupBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+      required:
+        - email
+        - password
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    ForgotPasswordBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+        - email
+
+    ResetPasswordBody:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+          minLength: 8
+      required:
+        - token
+        - password
+
+    CreatorProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        displayName:
+          type: string
+        creatorHandle:
+          type: string
+        legalName:
+          type: ["string", "null"]
+        pseudonym:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        claimStatement:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - displayName
+        - creatorHandle
+        - createdAt
+        - updatedAt
+
+    CreateProfileBody:
+      type: object
+      properties:
+        displayName:
+          type: string
+        creatorHandle:
+          type: string
+        legalName:
+          type: ["string", "null"]
+        pseudonym:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        claimStatement:
+          type: ["string", "null"]
+      required:
+        - displayName
+        - creatorHandle
+
+    UpdateProfileBody:
+      type: object
+      properties:
+        displayName:
+          type: string
+        creatorHandle:
+          type: string
+        legalName:
+          type: ["string", "null"]
+        pseudonym:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        claimStatement:
+          type: ["string", "null"]
+
+    ProjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        fileCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - title
+        - fileCount
+        - createdAt
+        - updatedAt
+
+    ProjectDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        fileCount:
+          type: integer
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileRecordResponse"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - title
+        - fileCount
+        - files
+        - createdAt
+        - updatedAt
+
+    CreateProjectBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+      required:
+        - title
+
+    UpdateProjectBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+
+    FileRecordResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        projectId:
+          type: ["string", "null"]
+        projectTitle:
+          type: ["string", "null"]
+        title:
+          type: string
+        originalFilename:
+          type: string
+        fileType:
+          type: string
+        mimeType:
+          type: string
+        fileSizeBytes:
+          type: string
+        sha256Hash:
+          type: string
+        notes:
+          type: ["string", "null"]
+        privacyMode:
+          type: string
+          enum: [private, shareable_certificate, public_verification]
+        certificateId:
+          type: ["string", "null"]
+        certificateStatus:
+          type: ["string", "null"]
+        verificationUrl:
+          type: ["string", "null"]
+        recordedAtUtc:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - title
+        - originalFilename
+        - fileType
+        - mimeType
+        - fileSizeBytes
+        - sha256Hash
+        - privacyMode
+        - createdAt
+        - updatedAt
+
+    FileRecordDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        projectId:
+          type: ["string", "null"]
+        projectTitle:
+          type: ["string", "null"]
+        creatorProfileId:
+          type: string
+        displayName:
+          type: string
+        creatorHandle:
+          type: string
+        title:
+          type: string
+        originalFilename:
+          type: string
+        fileType:
+          type: string
+        mimeType:
+          type: string
+        fileSizeBytes:
+          type: string
+        sha256Hash:
+          type: string
+        notes:
+          type: ["string", "null"]
+        privacyMode:
+          type: string
+          enum: [private, shareable_certificate, public_verification]
+        certificateId:
+          type: ["string", "null"]
+        certificateStatus:
+          type: ["string", "null"]
+        verificationUrl:
+          type: ["string", "null"]
+        recordedAtUtc:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - creatorProfileId
+        - displayName
+        - creatorHandle
+        - title
+        - originalFilename
+        - fileType
+        - mimeType
+        - fileSizeBytes
+        - sha256Hash
+        - privacyMode
+        - createdAt
+        - updatedAt
+
+    UpdateFileBody:
+      type: object
+      properties:
+        title:
+          type: string
+        notes:
+          type: ["string", "null"]
+        projectId:
+          type: ["string", "null"]
+        privacyMode:
+          type: string
+          enum: [private, shareable_certificate, public_verification]
+
+    UploadResponse:
+      type: object
+      properties:
+        fileId:
+          type: string
+        certificateId:
+          type: string
+        verificationUrl:
+          type: string
+        sha256Hash:
+          type: string
+        recordedAtUtc:
+          type: string
+          format: date-time
+      required:
+        - fileId
+        - certificateId
+        - verificationUrl
+        - sha256Hash
+        - recordedAtUtc
+
+    VerificationResponse:
+      type: object
+      properties:
+        certificateId:
+          type: string
+        status:
+          type: string
+          enum: [valid, revoked, superseded]
+        displayName:
+          type: string
+        creatorHandle:
+          type: string
+        projectTitle:
+          type: ["string", "null"]
+        fileTitle:
+          type: string
+        originalFilename:
+          type: string
+        fileType:
+          type: string
+        mimeType:
+          type: string
+        fileSizeBytes:
+          type: string
+        sha256Hash:
+          type: string
+        recordedAtUtc:
+          type: string
+          format: date-time
+        hashMatchResult:
+          type: ["string", "null"]
+          enum: [match, mismatch, null]
+      required:
+        - certificateId
+        - status
+        - displayName
+        - creatorHandle
+        - fileTitle
+        - originalFilename
+        - fileType
+        - mimeType
+        - fileSizeBytes
+        - sha256Hash
+        - recordedAtUtc
+
+    DashboardStatsResponse:
+      type: object
+      properties:
+        protectedFiles:
+          type: integer
+        projects:
+          type: integer
+        certificates:
+          type: integer
+        verificationChecks:
+          type: integer
+      required:
+        - protectedFiles
+        - projects
+        - certificates
+        - verificationChecks

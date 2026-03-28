@@ -1,8 +1,8 @@
-# Workspace
+# OriginLock Workspace
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+OriginLock is a creator verification infrastructure platform. Users upload files and receive a timestamped proof-of-creation record including a SHA-256 fingerprint, UTC timestamp, creator claim profile, unique certificate ID, downloadable PDF certificate, and a public verification page.
 
 ## Stack
 
@@ -10,87 +10,113 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **Frontend**: React + Vite (artifacts/originlock)
+- **API framework**: Express 5 (artifacts/api-server)
+- **Database**: PostgreSQL + Drizzle ORM (lib/db)
+- **Auth**: Session-based (express-session + bcryptjs)
+- **Validation**: Zod (zod/v4), drizzle-zod
+- **API codegen**: Orval (from OpenAPI spec in lib/api-spec)
+- **PDF generation**: pdf-lib
+- **QR generation**: qrcode
+- **Hashing**: Node crypto (SHA-256)
+- **File upload**: multer (memory storage)
+- **Build**: esbuild
 
 ## Structure
 
-```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+```
+artifacts/
+  api-server/        Express API server
+  originlock/        React + Vite frontend (previewPath: /)
+lib/
+  api-spec/          OpenAPI spec + Orval codegen config
+  api-client-react/  Generated React Query hooks
+  api-zod/           Generated Zod schemas
+  db/                Drizzle ORM schema + DB connection
 ```
 
-## TypeScript & Composite Projects
+## Database Schema
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+Tables:
+- `users` — auth accounts (email, password_hash, reset token)
+- `creator_profiles` — creator identity (display name, handle, bio, etc.)
+- `projects` — file collections
+- `file_records` — uploaded file metadata, SHA-256 hash, privacy mode
+- `timestamp_records` — UTC timestamp per file
+- `certificates` — certificate ID, status, verification token, PDF data
+- `verification_events` — audit log of every verification page view / hash comparison
+- `audit_logs` — general audit trail
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## Key Routes (API)
 
-## Root Scripts
+- `POST /api/auth/signup` — create account
+- `POST /api/auth/login` — login with session cookie
+- `GET /api/auth/me` — get current user
+- `POST /api/auth/logout` — clear session
+- `GET/POST/PATCH /api/profile` — creator profile CRUD
+- `GET/POST /api/projects` — list and create projects
+- `GET/PATCH/DELETE /api/projects/:id` — project detail
+- `GET /api/files` — list user files
+- `POST /api/files/upload` — upload file (multipart), computes SHA-256, generates certificate
+- `GET /api/files/:id` — file detail with certificate info
+- `GET /api/files/:id/certificate/download` — stream PDF certificate
+- `GET /api/verify/:certificateId` — public verification (logs event, compares hash if submitted)
+- `GET /api/dashboard/stats` — summary counts
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+## Frontend Routes
 
-## Packages
+Public:
+- `/` — landing page
+- `/pricing` — Free / Creator (coming soon) / Pro (coming soon)
+- `/verify` — certificate ID lookup
+- `/verify/:certificateId` — public verification page with hash comparison
+- `/login`, `/signup`, `/forgot-password`
+- `/terms`, `/privacy`, `/legal`
 
-### `artifacts/api-server` (`@workspace/api-server`)
+Authenticated (redirect to /login if not authed):
+- `/dashboard` — summary cards + recent files
+- `/dashboard/upload` — drag-and-drop file upload flow
+- `/dashboard/files/:id` — file detail with certificate download
+- `/dashboard/projects` — project list
+- `/dashboard/projects/:id` — project detail with linked files
+- `/dashboard/profile` — creator profile create/edit
+- `/dashboard/settings` — account email, password reset, delete placeholder
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+## Upload Flow
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+1. Validate file type (mp3, wav, mp4, pdf, png, jpg, jpeg) and size
+2. Read file into buffer (multer memory storage)
+3. Compute SHA-256 hash (Node crypto)
+4. Insert file_records row
+5. Insert timestamp_records row with current UTC time
+6. Generate unique certificate ID (format: OL-YYYY-XXXX-NNNN)
+7. Generate verification token
+8. Build verification URL from REPLIT_DOMAINS env var
+9. Generate PDF certificate (pdf-lib + QR code via qrcode)
+10. Store PDF as base64 in certificates.pdf_data
+11. Return { fileId, certificateId, verificationUrl, sha256Hash, recordedAtUtc }
 
-### `lib/db` (`@workspace/db`)
+## Certificate PDF
 
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
+Generated by `artifacts/api-server/src/lib/certificate.ts` using pdf-lib. Contains:
+- OriginLock branding, certificate ID, status badge
+- Creator display name and handle, project title if any
+- File info section, cryptographic proof section (timestamp + SHA-256)
+- QR code linking to verification URL
+- Legal disclaimer footer
 
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
+## Development Commands
 
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
+```bash
+# Start API server
+pnpm --filter @workspace/api-server run dev
 
-### `lib/api-spec` (`@workspace/api-spec`)
+# Start frontend
+pnpm --filter @workspace/originlock run dev
 
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
+# Push DB schema changes
+pnpm --filter @workspace/db run push
 
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+# Run OpenAPI codegen
+pnpm --filter @workspace/api-spec run codegen
+```
