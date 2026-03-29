@@ -17,6 +17,7 @@ import { Terms, Privacy, LegalDisclaimer } from "@/pages/public/Legal";
 
 import { Dashboard } from "@/pages/auth/Dashboard";
 import { Upload } from "@/pages/auth/Upload";
+import { FileList } from "@/pages/auth/FileList";
 import { FileDetail } from "@/pages/auth/FileDetail";
 import { Projects } from "@/pages/auth/Projects";
 import { ProjectDetail } from "@/pages/auth/ProjectDetail";
@@ -51,6 +52,9 @@ function Router() {
       </Route>
       <Route path="/dashboard/upload">
         <ProtectedRoute><Upload /></ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/files">
+        <ProtectedRoute><FileList /></ProtectedRoute>
       </Route>
       <Route path="/dashboard/files/:id">
         <ProtectedRoute><FileDetail /></ProtectedRoute>

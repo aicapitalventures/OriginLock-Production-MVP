@@ -34,7 +34,7 @@ export function Login() {
         onError: (err) => {
           toast({
             title: "Login Failed",
-            description: err.error?.error || "Invalid credentials",
+            description: (err as any)?.data?.error || err.message || "Invalid credentials",
             variant: "destructive"
           });
         }

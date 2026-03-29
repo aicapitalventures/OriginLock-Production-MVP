@@ -1,0 +1,100 @@
+Run a strict end-to-end QA and hardening pass on OriginLock.
+
+Do not redesign the UI.
+Do not spend time on cosmetic changes unless they are necessary to support functionality.
+Focus on validating and fixing the real MVP flows.
+
+Test and verify these exact flows end to end:
+
+1. Signup flow
+- create a new user
+- confirm session persists correctly
+- protected dashboard routes work after login
+- logout works
+- login works again
+
+2. Creator profile flow
+- create creator profile
+- save display name, creator handle, optional fields
+- verify data persists and reloads correctly
+
+3. Project flow
+- create project
+- open project detail page
+- verify linked files appear correctly
+
+4. Upload flow
+- upload at least one supported test file
+- validate file type and size
+- store file in storage
+- compute SHA-256 hash
+- save metadata in database
+- create timestamp record
+- create certificate record
+- generate certificate ID
+- generate verification token
+- generate QR code
+- generate PDF certificate
+- show success state
+- open file detail page successfully
+
+5. File detail page
+- verify title, original filename, file type, mime type, file size, hash, timestamp, certificate ID, certificate status, verification link, and PDF download all render correctly
+
+6. Verification flow
+- verify by certificate ID on /verify and /verify/[certificateId]
+- test valid record
+- test invalid record
+- test local file upload hash comparison
+- show correct result states: match, mismatch, not found, invalid, revoked, superseded
+- verify verification events are written to the database
+
+7. Dashboard flow
+- confirm stats cards are accurate
+- confirm recent records table loads correctly
+- confirm no auth/session bug prevents data loading
+
+8. Security and platform checks
+- verify original uploaded files are not publicly exposed
+- verify public verification pages expose certificate metadata only
+- verify protected routes are actually protected
+- verify cookies/session handling works correctly in the current frontend/backend setup
+- verify no remaining runtime crashes exist
+
+9. Legal and support pages
+- verify pricing, forgot-password, legal, privacy, and terms pages all render and route correctly
+
+Requirements for this QA pass:
+- fix any broken logic found
+- fix any route errors
+- fix any data mismatch between frontend and backend
+- fix any schema or query issues
+- fix any cookie/session issues
+- fix any broken imports or runtime crashes
+- fix any broken PDF/QR generation
+- do not leave stubs for core MVP functionality
+
+After the QA pass, provide a precise report with:
+A. what was tested
+B. what was broken
+C. what was fixed
+D. what still remains incomplete, if anything
+E. whether the app now satisfies the full MVP definition of done
+
+Definition of done:
+The MVP is only complete if these flows work end to end:
+- signup and login
+- profile creation
+- project creation
+- supported file upload
+- SHA-256 hashing
+- metadata save
+- timestamp record save
+- certificate record creation
+- PDF certificate generation
+- file detail page rendering
+- public verification by certificate ID
+- local file comparison against stored hash
+- verification event logging
+
+Do not claim completion unless each item above has been validated against the running app.

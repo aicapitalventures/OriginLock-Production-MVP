@@ -17,7 +17,7 @@ router.get(
       .select()
       .from(projectsTable)
       .where(eq(projectsTable.userId, req.userId!))
-      .orderBy(projectsTable.updatedAt);
+      .orderBy(desc(projectsTable.updatedAt));
 
     const projectIds = projects.map((p) => p.id);
     const fileCounts: Record<string, number> = {};

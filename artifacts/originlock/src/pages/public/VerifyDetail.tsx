@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useParams } from "wouter";
-import { useVerifyCertificate } from "@workspace/api-client-react";
+import { useVerifyCertificate, verifyCertificate } from "@workspace/api-client-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Card } from "@/components/ui/card";
@@ -9,30 +9,53 @@ import { format } from "date-fns";
 import { formatBytes, calculateFileHash } from "@/lib/hash";
 import { useDropzone } from "react-dropzone";
 import { CheckCircle2, XCircle, UploadCloud, File as FileIcon, Loader2, ShieldCheck, User, Calendar, Database } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function VerifyDetail() {
   const { certificateId } = useParams<{ certificateId: string }>();
   const [localFile, setLocalFile] = useState<File | null>(null);
-  const [localHash, setLocalHash] = useState<string | null>(null);
   const [isHashing, setIsHashing] = useState(false);
+  const [hashResult, setHashResult] = useState<{
+    localHash: string;
+    matchResult: "match" | "mismatch";
+  } | null>(null);
 
   const { data, isLoading, isError } = useVerifyCertificate(certificateId!);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    if (file) {
-      setLocalFile(file);
-      setIsHashing(true);
-      try {
-        const hash = await calculateFileHash(file);
-        setLocalHash(hash);
-      } catch (err) {
-        console.error("Hashing failed", err);
-      } finally {
-        setIsHashing(false);
-      }
+    if (!file || !certificateId) return;
+
+    setLocalFile(file);
+    setIsHashing(true);
+    setHashResult(null);
+
+    let localHash: string;
+    try {
+      localHash = await calculateFileHash(file);
+    } catch {
+      setIsHashing(false);
+      return;
     }
-  }, []);
+
+    try {
+      // Call the server with the hash — logs hash_comparison event to DB
+      // and returns an authoritative server-side result
+      const result = await verifyCertificate(certificateId, { submittedHash: localHash });
+      const matchResult = result.hashMatchResult ?? (localHash === result.sha256Hash ? "match" : "mismatch");
+      setHashResult({ localHash, matchResult });
+    } catch {
+      // If the API call fails, fall back to client-side comparison
+      if (data?.sha256Hash) {
+        setHashResult({
+          localHash,
+          matchResult: localHash === data.sha256Hash ? "match" : "mismatch",
+        });
+      }
+    } finally {
+      setIsHashing(false);
+    }
+  }, [certificateId, data]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, maxFiles: 1 });
 
@@ -50,7 +73,7 @@ export function VerifyDetail() {
           <div className="text-center py-24">
             <XCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Certificate Not Found</h2>
-            <p className="text-muted-foreground">The certificate ID {certificateId} does not match any public records.</p>
+            <p className="text-muted-foreground">The certificate ID <span className="font-mono text-sm">{certificateId}</span> does not match any records.</p>
           </div>
         ) : (
           <div className="space-y-8">
@@ -134,7 +157,7 @@ export function VerifyDetail() {
                       Verify Local File
                     </h3>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Select a local file to compare its hash against this immutable record. We hash the file entirely in your browser—no data is uploaded.
+                      Select a local file to compare its hash against this immutable record. The file is hashed entirely in your browser — no data is uploaded.
                     </p>
                   </div>
 
@@ -157,7 +180,7 @@ export function VerifyDetail() {
                           <p className="font-medium truncate">{localFile.name}</p>
                           <p className="text-xs text-muted-foreground">{formatBytes(localFile.size)}</p>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => { setLocalFile(null); setLocalHash(null); }}>
+                        <Button variant="ghost" size="sm" onClick={() => { setLocalFile(null); setHashResult(null); }}>
                           Clear
                         </Button>
                       </div>
@@ -165,11 +188,11 @@ export function VerifyDetail() {
                       {isHashing ? (
                         <div className="text-center py-8">
                           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-                          <p className="text-sm text-muted-foreground">Computing SHA-256 locally...</p>
+                          <p className="text-sm text-muted-foreground">Computing SHA-256 and verifying...</p>
                         </div>
-                      ) : localHash ? (
-                        <div className={`p-6 rounded-xl border text-center ${localHash === data.sha256Hash ? 'bg-success/10 border-success/30' : 'bg-destructive/10 border-destructive/30'}`}>
-                          {localHash === data.sha256Hash ? (
+                      ) : hashResult ? (
+                        <div className={`p-6 rounded-xl border text-center ${hashResult.matchResult === 'match' ? 'bg-success/10 border-success/30' : 'bg-destructive/10 border-destructive/30'}`}>
+                          {hashResult.matchResult === 'match' ? (
                             <>
                               <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-3" />
                               <h4 className="text-lg font-bold text-success mb-1">Authenticity Verified</h4>
@@ -188,7 +211,7 @@ export function VerifyDetail() {
                           )}
                           <div className="mt-4 pt-4 border-t border-current/10">
                             <p className="text-xs opacity-70 mb-1">Local File Hash:</p>
-                            <p className="font-mono text-xs break-all">{localHash}</p>
+                            <p className="font-mono text-xs break-all">{hashResult.localHash}</p>
                           </div>
                         </div>
                       ) : null}
