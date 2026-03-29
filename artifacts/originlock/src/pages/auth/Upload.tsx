@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useDropzone } from "react-dropzone";
-import { UploadCloud, File as FileIcon, X, Loader2, UserX, CheckCircle } from "lucide-react";
+import { UploadCloud, File as FileIcon, X, Loader2, UserX, CheckCircle, Shield } from "lucide-react";
 import { formatBytes } from "@/lib/hash";
 
 const uploadSchema = z.object({
