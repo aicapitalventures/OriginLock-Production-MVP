@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { formatBytes, calculateFileHash } from "@/lib/hash";
 import { useDropzone } from "react-dropzone";
-import { CheckCircle2, XCircle, UploadCloud, File as FileIcon, Loader2, ShieldCheck, User, Calendar, Database } from "lucide-react";
+import { CheckCircle2, XCircle, UploadCloud, File as FileIcon, Loader2, ShieldCheck, User, Calendar, Database, Scale, AlertTriangle, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function VerifyDetail() {
@@ -220,6 +220,57 @@ export function VerifyDetail() {
                 </Card>
               </div>
             </div>
+          {/* What this certificate proves — authority section */}
+          <div className="grid md:grid-cols-3 gap-6 mt-2">
+            <Card className="p-6 border-success/20 bg-success/5">
+              <div className="flex items-center gap-2 mb-4">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+                <h4 className="font-semibold text-sm text-success">What This Proves</h4>
+              </div>
+              <ul className="space-y-2 text-sm text-foreground/80">
+                <li className="flex items-start gap-2"><span className="text-success mt-0.5">•</span> This exact file existed at or before the recorded timestamp</li>
+                <li className="flex items-start gap-2"><span className="text-success mt-0.5">•</span> The file has not been modified since it was recorded</li>
+                <li className="flex items-start gap-2"><span className="text-success mt-0.5">•</span> The creator registered the hash under their verified account</li>
+              </ul>
+            </Card>
+
+            <Card className="p-6 border-warning/20 bg-warning/5">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle className="w-5 h-5 text-yellow-400" />
+                <h4 className="font-semibold text-sm text-yellow-400">What This Doesn't Prove</h4>
+              </div>
+              <ul className="space-y-2 text-sm text-foreground/80">
+                <li className="flex items-start gap-2"><span className="text-yellow-400 mt-0.5">•</span> Authorship or copyright ownership</li>
+                <li className="flex items-start gap-2"><span className="text-yellow-400 mt-0.5">•</span> That no earlier copy of this content exists elsewhere</li>
+                <li className="flex items-start gap-2"><span className="text-yellow-400 mt-0.5">•</span> That the content is original or doesn't infringe on another work</li>
+              </ul>
+            </Card>
+
+            <Card className="p-6 border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2 mb-4">
+                <Scale className="w-5 h-5 text-primary" />
+                <h4 className="font-semibold text-sm text-primary">Legal Standing</h4>
+              </div>
+              <ul className="space-y-2 text-sm text-foreground/80">
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span> Admissible as digital evidence in many jurisdictions</li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span> Accepted in DMCA counter-notices and licensing disputes</li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span> Complements (does not replace) formal copyright registration</li>
+              </ul>
+            </Card>
+          </div>
+
+          {/* Verification methodology note */}
+          <Card className="p-5 border-white/5 bg-card/40">
+            <div className="flex items-start gap-3">
+              <BookOpen className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium mb-1">Verification Methodology</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  OriginLock uses SHA-256 cryptographic hashing — the same algorithm trusted by governments, financial institutions, and open-source software chains worldwide. The hash is computed client-side in your browser and recorded with a UTC timestamp on our tamper-evident database. Anyone with access to the original file and this certificate can independently verify the match.
+                </p>
+              </div>
+            </div>
+          </Card>
           </div>
         )}
       </main>

@@ -14,6 +14,7 @@ import { Signup } from "@/pages/public/Signup";
 import { Pricing } from "@/pages/public/Pricing";
 import { ForgotPassword } from "@/pages/public/ForgotPassword";
 import { Terms, Privacy, LegalDisclaimer } from "@/pages/public/Legal";
+import { CreatorProfile } from "@/pages/public/CreatorProfile";
 
 import { Dashboard } from "@/pages/auth/Dashboard";
 import { Upload } from "@/pages/auth/Upload";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/legal" component={LegalDisclaimer} />
+      <Route path="/creators/:handle" component={CreatorProfile} />
 
       <Route path="/dashboard">
         <ProtectedRoute><Dashboard /></ProtectedRoute>

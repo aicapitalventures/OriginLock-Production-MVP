@@ -1,9 +1,61 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import { Shield, Clock, FileText, CheckCircle2, ChevronRight, Lock } from "lucide-react";
+import { Shield, Clock, FileText, CheckCircle2, ChevronRight, Lock, ChevronDown } from "lucide-react";
+
+const FAQ_ITEMS = [
+  {
+    q: "Does OriginLock register my copyright?",
+    a: "No. OriginLock creates cryptographic proof that a specific file existed at a specific moment in time. It does not register or transfer copyright. Copyright is automatically granted to creators at the moment of creation — OriginLock provides evidence to support that timeline.",
+  },
+  {
+    q: "What exactly gets stored on OriginLock's servers?",
+    a: "We store a SHA-256 hash of your file, not the file itself. The hash is a unique 64-character fingerprint of the contents. Your raw media data never leaves your device.",
+  },
+  {
+    q: "Can I use an OriginLock certificate in a legal dispute?",
+    a: "OriginLock certificates provide verifiable, timestamped evidence of prior possession. They have been used in licensing disputes and DMCA counter-claims. We strongly recommend consulting a qualified attorney for legal strategy specific to your situation.",
+  },
+  {
+    q: "What happens if I modify my file after uploading?",
+    a: "Any change to the file — even adding a single space — produces a completely different SHA-256 hash. The original certificate will no longer match the modified version, which is by design. Upload a new version to add it to the chain.",
+  },
+  {
+    q: "How is OriginLock different from just emailing myself a file?",
+    a: "Email timestamps are easily manipulated, not cryptographically bound, and can be backdated. OriginLock records are immutable, independently verifiable, and produce a formal certificate tied to a specific hash — not just a date.",
+  },
+  {
+    q: "What file types does OriginLock support?",
+    a: "Any file type up to the plan limit: audio (mp3, wav, flac), video (mp4, mov), documents (pdf, docx), images (png, jpg), archives (zip), and more. The hash is computed the same way regardless of format.",
+  },
+];
+
+function FaqAccordion() {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <div className="space-y-3 max-w-3xl mx-auto">
+      {FAQ_ITEMS.map((item, i) => (
+        <div key={i} className="border border-white/8 rounded-xl overflow-hidden">
+          <button
+            className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-white/5 transition-colors"
+            onClick={() => setOpen(open === i ? null : i)}
+          >
+            <span className="font-medium text-sm pr-4">{item.q}</span>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${open === i ? "rotate-180" : ""}`} />
+          </button>
+          {open === i && (
+            <div className="px-6 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-white/5 pt-4">
+              {item.a}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function Landing() {
   return (
@@ -146,6 +198,35 @@ export function Landing() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="py-24">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-display font-bold mb-4">Frequently Asked Questions</h2>
+              <p className="text-muted-foreground max-w-xl mx-auto">
+                Straight answers about what OriginLock does — and doesn't do — for your work.
+              </p>
+            </div>
+            <FaqAccordion />
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="py-24 bg-secondary/20 border-t border-white/5">
+          <div className="container mx-auto px-4 text-center max-w-2xl">
+            <h2 className="text-3xl font-display font-bold mb-4">Start protecting your work today.</h2>
+            <p className="text-muted-foreground mb-8">
+              Free for your first record. No credit card required.
+            </p>
+            <Link href="/signup">
+              <Button size="lg" className="h-14 px-10 text-base font-semibold shadow-[0_0_30px_rgba(6,182,212,0.3)] hover:shadow-[0_0_40px_rgba(6,182,212,0.4)] transition-all duration-300">
+                Create Free Account
+                <ChevronRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
           </div>
         </section>
 

@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import logoWordmark from "@assets/originlock_wordmark_1776836712881.png";
+import logoIcon from "@assets/originlock_logo_1776836712880.png";
 
 export function Navbar() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -10,12 +11,12 @@ export function Navbar() {
   const isActive = (path: string) => location === path;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-white/8 bg-background/90 backdrop-blur-xl">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 group">
-            <ShieldCheck className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
-            <span className="font-display font-bold text-xl tracking-wide text-foreground">OriginLock</span>
+        <div className="flex items-center gap-10">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <img src={logoIcon} alt="OriginLock" className="h-7 w-auto group-hover:opacity-90 transition-opacity" />
+            <img src={logoWordmark} alt="ORIGINLOCK" className="h-4 w-auto hidden sm:block" />
           </Link>
           
           <nav className="hidden md:flex items-center gap-6">

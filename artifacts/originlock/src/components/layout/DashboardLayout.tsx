@@ -8,13 +8,14 @@ import {
   User, 
   Settings, 
   LogOut,
-  ShieldCheck,
   Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import logoIcon from "@assets/originlock_logo_1776836712880.png";
+import logoWordmark from "@assets/originlock_wordmark_1776836712881.png";
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -40,41 +41,41 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   ];
 
   const NavContent = () => (
-    <div className="flex flex-col h-full bg-secondary/30">
-      <div className="p-6 border-b border-white/10">
-        <Link href="/" className="flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-primary" />
-          <span className="font-display font-bold text-xl tracking-wide">OriginLock</span>
+    <div className="flex flex-col h-full">
+      <div className="p-5 border-b border-white/8">
+        <Link href="/" className="flex items-center gap-2.5">
+          <img src={logoIcon} alt="OriginLock" className="h-7 w-auto" />
+          <img src={logoWordmark} alt="ORIGINLOCK" className="h-3.5 w-auto" />
         </Link>
       </div>
       
-      <div className="flex-1 py-6 px-4 space-y-2 overflow-y-auto">
+      <div className="flex-1 py-5 px-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.href || (item.href !== '/dashboard' && location.startsWith(item.href));
           
           return (
             <Link key={item.href} href={item.href} className="block">
-              <div className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+              <div className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-150 ${
                 isActive 
-                  ? 'bg-primary/10 text-primary font-medium border border-primary/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]' 
+                  ? 'bg-primary/10 text-primary font-medium border border-primary/20' 
                   : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
               }`}>
-                <Icon className="w-5 h-5" />
-                {item.label}
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="text-sm">{item.label}</span>
               </div>
             </Link>
           );
         })}
       </div>
       
-      <div className="p-4 border-t border-white/10">
+      <div className="p-3 border-t border-white/8">
         <Button 
           variant="ghost" 
-          className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          className="w-full justify-start text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10"
           onClick={handleLogout}
         >
-          <LogOut className="w-4 h-4 mr-2" />
+          <LogOut className="w-4 h-4 mr-3" />
           Log out
         </Button>
       </div>
@@ -91,21 +92,21 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               <Menu className="w-5 h-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72 border-r border-white/10 bg-background">
+          <SheetContent side="left" className="p-0 w-64 border-r border-white/8 bg-background">
             <NavContent />
           </SheetContent>
         </Sheet>
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-72 border-r border-white/10 bg-background z-10">
+      <aside className="hidden lg:block w-64 border-r border-white/8 bg-background/80 z-10 shrink-0">
         <NavContent />
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background pointer-events-none -z-10" />
-        <div className="container mx-auto p-4 lg:p-8 pt-16 lg:pt-8 min-h-full">
+      <main className="flex-1 overflow-y-auto">
+        <div className="absolute inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_800px_600px_at_80%_0%,rgba(6,182,212,0.04),transparent)]" />
+        <div className="container mx-auto p-4 lg:p-8 pt-16 lg:pt-8 min-h-full max-w-6xl">
           {children}
         </div>
       </main>

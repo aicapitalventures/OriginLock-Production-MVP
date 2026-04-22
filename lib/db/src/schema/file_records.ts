@@ -29,6 +29,8 @@ export const fileRecordsTable = pgTable("file_records", {
   creatorProfileId: uuid("creator_profile_id")
     .notNull()
     .references(() => creatorProfilesTable.id, { onDelete: "cascade" }),
+  // Version chain: optional reference to the prior version of this asset
+  parentFileId: uuid("parent_file_id"),
   originalFilename: text("original_filename").notNull(),
   storedFilename: text("stored_filename"),
   fileType: text("file_type").notNull(),

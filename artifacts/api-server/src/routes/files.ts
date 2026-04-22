@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
 import multer from "multer";
+import archiver from "archiver";
 import {
   db,
   fileRecordsTable,
@@ -133,7 +134,7 @@ router.post(
       return;
     }
 
-    const { title, notes, projectId, privacyMode } = req.body;
+    const { title, notes, projectId, privacyMode, parentFileId } = req.body;
 
     if (!title?.trim()) {
       res.status(400).json({ error: "Title is required" });
@@ -164,12 +165,30 @@ router.post(
 
     const recordedAtUtc = new Date();
 
+    // Validate parentFileId belongs to this user (if provided)
+    if (parentFileId) {
+      const [parentFile] = await db
+        .select({ id: fileRecordsTable.id })
+        .from(fileRecordsTable)
+        .where(
+          and(
+            eq(fileRecordsTable.id, parentFileId),
+            eq(fileRecordsTable.userId, req.userId!)
+          )
+        );
+      if (!parentFile) {
+        res.status(400).json({ error: "Parent file not found or not owned by you" });
+        return;
+      }
+    }
+
     const [fileRecord] = await db
       .insert(fileRecordsTable)
       .values({
         userId: req.userId!,
         projectId: projectId || null,
         creatorProfileId: profile.id,
+        parentFileId: parentFileId || null,
         originalFilename: req.file.originalname,
         fileType,
         mimeType,
@@ -298,6 +317,7 @@ router.get(
       projectId: f.projectId,
       projectTitle,
       creatorProfileId: f.creatorProfileId,
+      parentFileId: f.parentFileId ?? null,
       displayName: profile?.displayName ?? "",
       creatorHandle: profile?.creatorHandle ?? "",
       title: f.title,
@@ -460,6 +480,138 @@ router.get(
       `attachment; filename="certificate-${cert.certificateId}.pdf"`
     );
     res.send(pdfBuffer);
+  }
+);
+
+// Evidence Package: ZIP containing cert PDF + metadata JSON + instructions
+router.get(
+  "/files/:id/evidence-package",
+  requireAuth,
+  async (req: AuthenticatedRequest, res): Promise<void> => {
+    const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+    const [f] = await db
+      .select()
+      .from(fileRecordsTable)
+      .where(and(eq(fileRecordsTable.id, rawId), eq(fileRecordsTable.userId, req.userId!)));
+
+    if (!f) {
+      res.status(404).json({ error: "File not found" });
+      return;
+    }
+
+    const [cert] = await db.select().from(certificatesTable).where(eq(certificatesTable.fileId, rawId));
+    const [ts] = await db.select().from(timestampRecordsTable).where(eq(timestampRecordsTable.fileId, rawId));
+    const [profile] = await db.select().from(creatorProfilesTable).where(eq(creatorProfilesTable.id, f.creatorProfileId));
+    let projectTitle: string | null = null;
+    if (f.projectId) {
+      const [proj] = await db.select({ title: projectsTable.title }).from(projectsTable).where(eq(projectsTable.id, f.projectId));
+      projectTitle = proj?.title ?? null;
+    }
+
+    const metadata = {
+      exportedAt: new Date().toISOString(),
+      originlock: {
+        certificateId: cert?.certificateId ?? null,
+        certificateStatus: cert?.status ?? null,
+        verificationUrl: cert?.publicUrl ?? null,
+      },
+      file: {
+        title: f.title,
+        originalFilename: f.originalFilename,
+        fileType: f.fileType,
+        mimeType: f.mimeType,
+        fileSizeBytes: f.fileSizeBytes.toString(),
+        sha256Hash: f.sha256Hash,
+      },
+      timestamp: {
+        recordedAtUtc: ts?.recordedAtUtc?.toISOString() ?? null,
+        providerName: ts?.providerName ?? "originlock-internal",
+      },
+      creator: {
+        displayName: profile?.displayName ?? "",
+        creatorHandle: profile?.creatorHandle ?? "",
+        claimStatement: profile?.claimStatement ?? null,
+        websiteUrl: profile?.websiteUrl ?? null,
+      },
+      project: projectTitle ? { title: projectTitle } : null,
+    };
+
+    const instructions = `OriginLock Evidence Package
+===========================
+
+What this package contains:
+  - certificate.pdf : Formally formatted PDF certificate of your proof record
+  - metadata.json   : Machine-readable proof record (certificate ID, hash, timestamp, creator)
+
+How to verify this record:
+  1. Note the SHA-256 hash in metadata.json (file.sha256Hash)
+  2. Compute the SHA-256 hash of your original file using any standard tool (e.g. sha256sum on Linux/macOS, CertUtil on Windows)
+  3. Confirm the two hashes are identical
+  4. Visit the verification URL below to independently confirm the certificate record is intact
+
+Verification URL:
+  ${cert?.publicUrl ?? "(unavailable)"}
+
+Certificate ID:
+  ${cert?.certificateId ?? "(unavailable)"}
+
+Recorded (UTC):
+  ${ts?.recordedAtUtc?.toISOString() ?? "(unavailable)"}
+
+Important notices:
+  - OriginLock provides cryptographic proof of existence at a specific point in time
+  - It is NOT a copyright registration service
+  - It does NOT provide legal advice
+  - The hash proves the file content existed and was recorded at the timestamp above
+  - Any modification to the file, however minor, will produce a different hash
+
+Creator Attribution:
+  ${profile?.displayName ?? "(unknown)"} (@${profile?.creatorHandle ?? "unknown"})
+${profile?.claimStatement ? `\nClaim Statement:\n  ${profile.claimStatement}` : ""}
+
+OriginLock — https://originlock.app
+`;
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="OriginLock_Evidence_${cert?.certificateId ?? rawId}.zip"`);
+
+    const archive = archiver("zip", { zlib: { level: 6 } });
+    archive.pipe(res as any);
+
+    // Metadata JSON
+    archive.append(JSON.stringify(metadata, null, 2), { name: "metadata.json" });
+
+    // Verification instructions
+    archive.append(instructions, { name: "verification-instructions.txt" });
+
+    // Certificate PDF
+    if (cert?.pdfData) {
+      const pdfBuffer = Buffer.from(cert.pdfData, "base64");
+      archive.append(pdfBuffer, { name: "certificate.pdf" });
+    } else {
+      try {
+        const pdfBuffer = await generateCertificatePdf({
+          certificateId: cert?.certificateId ?? rawId,
+          status: cert?.status ?? "valid",
+          displayName: profile?.displayName ?? "",
+          creatorHandle: profile?.creatorHandle ?? "",
+          projectTitle,
+          fileTitle: f.title,
+          originalFilename: f.originalFilename,
+          fileType: f.fileType,
+          fileSizeBytes: f.fileSizeBytes,
+          sha256Hash: f.sha256Hash,
+          recordedAtUtc: ts?.recordedAtUtc ?? new Date(),
+          verificationUrl: cert?.publicUrl ?? "",
+        });
+        archive.append(pdfBuffer, { name: "certificate.pdf" });
+      } catch {
+        // proceed without PDF if generation fails
+      }
+    }
+
+    await archive.finalize();
   }
 );
 

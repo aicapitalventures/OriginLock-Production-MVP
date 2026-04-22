@@ -98,9 +98,15 @@ router.patch(
       }
     }
 
+    // profileIsPublic is not in the generated schema — handle it separately
+    const extraFields: Record<string, unknown> = {};
+    if (typeof req.body.profileIsPublic === "boolean") {
+      extraFields.profileIsPublic = req.body.profileIsPublic;
+    }
+
     const [profile] = await db
       .update(creatorProfilesTable)
-      .set(parsed.data)
+      .set({ ...parsed.data, ...extraFields })
       .where(eq(creatorProfilesTable.userId, req.userId!))
       .returning();
 

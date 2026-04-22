@@ -9,6 +9,7 @@ import {
   ForgotPasswordBody,
   ResetPasswordBody,
 } from "@workspace/api-zod";
+import { requireAuth, type AuthenticatedRequest } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -205,5 +206,17 @@ router.post("/auth/reset-password", async (req, res): Promise<void> => {
 
   res.json({ success: true, message: "Password reset successfully" });
 });
+
+// Account deletion — permanently removes the user and all cascade-deleted data
+router.delete(
+  "/auth/account",
+  requireAuth,
+  async (req: AuthenticatedRequest, res): Promise<void> => {
+    const session = (req as any).session;
+    await db.delete(usersTable).where(eq(usersTable.id, req.userId!));
+    session?.destroy?.(() => {});
+    res.json({ success: true, message: "Account permanently deleted" });
+  }
+);
 
 export default router;

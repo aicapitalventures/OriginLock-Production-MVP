@@ -20,6 +20,7 @@ OriginLock is a creator verification infrastructure platform. Users upload files
 - **QR generation**: qrcode
 - **Hashing**: Node crypto (SHA-256)
 - **File upload**: multer (memory storage)
+- **ZIP export**: archiver (evidence package)
 - **Build**: esbuild
 
 ## Structure
@@ -39,9 +40,9 @@ lib/
 
 Tables:
 - `users` — auth accounts (email, password_hash, reset token)
-- `creator_profiles` — creator identity (display name, handle, bio, etc.)
+- `creator_profiles` — creator identity (display name, handle, bio, profileIsPublic toggle)
 - `projects` — file collections
-- `file_records` — uploaded file metadata, SHA-256 hash, privacy mode
+- `file_records` — uploaded file metadata, SHA-256 hash, privacy mode, parentFileId (version chain)
 - `timestamp_records` — UTC timestamp per file
 - `certificates` — certificate ID, status, verification token, PDF data
 - `verification_events` — audit log of every verification page view / hash comparison
@@ -60,27 +61,31 @@ Tables:
 - `POST /api/files/upload` — upload file (multipart), computes SHA-256, generates certificate
 - `GET /api/files/:id` — file detail with certificate info
 - `GET /api/files/:id/certificate/download` — stream PDF certificate
+- `GET /api/files/:id/evidence-package` — download ZIP with PDF + metadata JSON + verification instructions
 - `GET /api/verify/:certificateId` — public verification (logs event, compares hash if submitted)
+- `DELETE /api/auth/account` — permanently delete authenticated user account
+- `GET /api/creators/:handle` — public creator profile (only when profileIsPublic=true)
 - `GET /api/dashboard/stats` — summary counts
 
 ## Frontend Routes
 
 Public:
-- `/` — landing page
-- `/pricing` — Free / Creator (coming soon) / Pro (coming soon)
+- `/` — landing page (hero, features, how-it-works, use-cases, FAQ accordion, final CTA)
+- `/pricing` — Free / Creator / Studio tiers with FAQ accordion
 - `/verify` — certificate ID lookup
-- `/verify/:certificateId` — public verification page with hash comparison
+- `/verify/:certificateId` — public verification page with hash comparison + authority section (what it proves/doesn't prove/legal standing)
+- `/creators/:handle` — public creator profile with proof records (only when creator set profileIsPublic=true)
 - `/login`, `/signup`, `/forgot-password`
 - `/terms`, `/privacy`, `/legal`
 
 Authenticated (redirect to /login if not authed):
 - `/dashboard` — summary cards + recent files
-- `/dashboard/upload` — drag-and-drop file upload flow
-- `/dashboard/files/:id` — file detail with certificate download
+- `/dashboard/upload` — drag-and-drop file upload flow (with version chain selector, privacy level cards)
+- `/dashboard/files/:id` — file detail with certificate download, evidence package download, version chain card
 - `/dashboard/projects` — project list
 - `/dashboard/projects/:id` — project detail with linked files
-- `/dashboard/profile` — creator profile create/edit
-- `/dashboard/settings` — account email, password reset, delete placeholder
+- `/dashboard/profile` — creator profile create/edit (with Public Profile toggle)
+- `/dashboard/settings` — account management with real account deletion (confirmation dialog)
 
 ## Upload Flow
 

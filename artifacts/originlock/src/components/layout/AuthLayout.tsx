@@ -1,15 +1,14 @@
 import { ReactNode } from "react";
 import { Link } from "wouter";
-import { ShieldCheck } from "lucide-react";
+import logoLockup from "@assets/originlock_lockup_1776836712879.png";
 
 export function AuthLayout({ children, title, subtitle }: { children: ReactNode, title: string, subtitle: string }) {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Left Form Side */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-4 sm:px-12 lg:px-24 py-12 relative z-10 bg-background">
-        <Link href="/" className="absolute top-8 left-8 flex items-center gap-2 group">
-          <ShieldCheck className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
-          <span className="font-display font-bold text-xl text-foreground">OriginLock</span>
+      <div className="w-full lg:w-1/2 flex flex-col justify-center px-4 sm:px-12 lg:px-20 py-12 relative z-10 bg-background">
+        <Link href="/" className="absolute top-8 left-8">
+          <img src={logoLockup} alt="OriginLock" className="h-9 w-auto" />
         </Link>
         
         <div className="max-w-md w-full mx-auto">
@@ -23,17 +22,25 @@ export function AuthLayout({ children, title, subtitle }: { children: ReactNode,
       </div>
       
       {/* Right Image Side */}
-      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden bg-secondary border-l border-white/5">
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-transparent z-10 mix-blend-overlay" />
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#080d14] border-l border-white/5 flex-col items-center justify-center">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]" />
         <img 
           src={`${import.meta.env.BASE_URL}images/auth-bg.png`}
-          alt="Cryptographic hash visualization" 
-          className="w-full h-full object-cover opacity-80"
+          alt="Background" 
+          className="absolute inset-0 w-full h-full object-cover opacity-15"
         />
-        <div className="absolute bottom-12 left-12 right-12 z-20 p-8 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10">
-          <h3 className="font-display font-bold text-2xl text-white mb-2">Immutable Proof</h3>
-          <p className="text-white/70">
-            "OriginLock gave me the peace of mind to share my scripts securely. The cryptographic timestamp is undeniably mine."
+        <div className="relative z-10 flex flex-col items-center text-center px-12">
+          <img src={logoLockup} alt="OriginLock" className="w-44 mb-12 opacity-95" />
+          <p className="text-2xl font-display font-bold text-white leading-snug mb-4">
+            Prove what existed,<br/>when it existed.
+          </p>
+          <p className="text-white/50 text-sm max-w-xs leading-relaxed">
+            Cryptographic proof of existence and timestamped records for creators.
+          </p>
+        </div>
+        <div className="absolute bottom-10 left-10 right-10 z-10 p-6 rounded-xl bg-white/5 backdrop-blur-sm border border-white/8">
+          <p className="text-white/70 text-sm italic leading-relaxed">
+            "OriginLock gave me peace of mind to share my scripts securely. The cryptographic timestamp is undeniably mine."
           </p>
         </div>
       </div>

@@ -3,6 +3,7 @@ import {
   text,
   timestamp,
   uuid,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -21,6 +22,8 @@ export const creatorProfilesTable = pgTable("creator_profiles", {
   bio: text("bio"),
   websiteUrl: text("website_url"),
   claimStatement: text("claim_statement"),
+  // Public profile: when true, the profile is visible on /creators/:handle
+  profileIsPublic: boolean("profile_is_public").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
