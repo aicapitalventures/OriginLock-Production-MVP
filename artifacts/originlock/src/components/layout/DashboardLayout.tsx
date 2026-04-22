@@ -8,10 +8,12 @@ import {
   User, 
   Settings, 
   LogOut,
-  Menu
+  Menu,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@workspace/api-client-react";
+import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import logoIcon from "@assets/originlock_logo_1776836712880.png";
@@ -31,6 +33,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     });
   };
 
+  const { user } = useAuth();
+  const isAdmin = (user as any)?.isAdmin === true;
   const navItems = [
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { href: "/dashboard/upload", label: "Protect File", icon: Upload },
@@ -38,6 +42,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
     { href: "/dashboard/profile", label: "Creator Profile", icon: User },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: Shield }] : []),
   ];
 
   const NavContent = () => (

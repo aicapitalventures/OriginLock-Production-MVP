@@ -10,6 +10,7 @@ import {
   certificatesTable,
   creatorProfilesTable,
   projectsTable,
+  usersTable,
 } from "@workspace/db";
 import { UpdateFileBody } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../lib/auth";
@@ -18,6 +19,9 @@ import {
   generateVerificationToken,
   generateCertificatePdf,
 } from "../lib/certificate";
+import { getUserUsage, checkLimit } from "../lib/usage";
+import { recordEvent } from "../lib/analytics";
+import { getPlan } from "../lib/plans";
 
 const router: IRouter = Router();
 
@@ -134,6 +138,28 @@ router.post(
       return;
     }
 
+    // Plan enforcement: file count + size
+    const usage = await getUserUsage(req.userId!);
+    if (!checkLimit(usage.files.used, usage.files.limit)) {
+      res.status(402).json({
+        error: "PLAN_LIMIT_REACHED",
+        scope: "files",
+        message: `Your ${usage.plan.name} plan allows ${usage.files.limit} files. Upgrade to add more.`,
+        plan: usage.plan,
+      });
+      return;
+    }
+    const sizeMb = req.file.size / (1024 * 1024);
+    if (sizeMb > usage.plan.maxFileSizeMb) {
+      res.status(402).json({
+        error: "PLAN_FILE_SIZE_EXCEEDED",
+        scope: "fileSize",
+        message: `Your ${usage.plan.name} plan allows files up to ${usage.plan.maxFileSizeMb}MB. This file is ${sizeMb.toFixed(1)}MB.`,
+        plan: usage.plan,
+      });
+      return;
+    }
+
     const { title, notes, projectId, privacyMode, parentFileId } = req.body;
 
     if (!title?.trim()) {
@@ -164,6 +190,17 @@ router.post(
     const hash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
 
     const recordedAtUtc = new Date();
+
+    // Version chain feature gating
+    if (parentFileId && !usage.plan.versionChainEnabled) {
+      res.status(402).json({
+        error: "PLAN_FEATURE_LOCKED",
+        scope: "versionChain",
+        message: `Version chains require the Creator plan or higher.`,
+        plan: usage.plan,
+      });
+      return;
+    }
 
     // Validate parentFileId belongs to this user (if provided)
     if (parentFileId) {
@@ -253,6 +290,12 @@ router.post(
       publicUrl: verificationUrl,
       pdfData,
     });
+
+    if (usage.files.used === 0) {
+      await recordEvent("first_file_protected", req.userId!, { fileId: fileRecord.id, fileType });
+    } else {
+      await recordEvent("file_protected", req.userId!, { fileId: fileRecord.id, fileType });
+    }
 
     res.status(201).json({
       fileId: fileRecord.id,
@@ -429,6 +472,8 @@ router.get(
       return;
     }
 
+    await recordEvent("certificate_downloaded", req.userId!, { fileId: rawId, certificateId: cert.certificateId });
+
     if (cert.pdfData) {
       const pdfBuffer = Buffer.from(cert.pdfData, "base64");
       res.setHeader("Content-Type", "application/pdf");
@@ -489,6 +534,19 @@ router.get(
   requireAuth,
   async (req: AuthenticatedRequest, res): Promise<void> => {
     const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+    // Plan gating: evidence package is Creator+ only
+    const [u] = await db.select({ tier: usersTable.subscriptionTier }).from(usersTable).where(eq(usersTable.id, req.userId!));
+    const plan = getPlan(u?.tier);
+    if (!plan.evidencePackageEnabled) {
+      res.status(402).json({
+        error: "PLAN_FEATURE_LOCKED",
+        scope: "evidencePackage",
+        message: "Evidence Packages are available on the Creator plan and above.",
+        plan,
+      });
+      return;
+    }
 
     const [f] = await db
       .select()
@@ -575,6 +633,8 @@ OriginLock — https://originlock.app
 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="OriginLock_Evidence_${cert?.certificateId ?? rawId}.zip"`);
+
+    await recordEvent("evidence_package_downloaded", req.userId!, { fileId: rawId, certificateId: cert?.certificateId });
 
     const archive = archiver("zip", { zlib: { level: 6 } });
     archive.pipe(res as any);

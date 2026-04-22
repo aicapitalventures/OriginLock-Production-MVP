@@ -6,6 +6,8 @@ import { Shield, FolderKanban, FileBadge, CheckCircle, ArrowRight, Upload } from
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
+import { PlanUsageCard } from "@/components/dashboard/PlanUsageCard";
 
 export function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats();
@@ -33,25 +35,29 @@ export function Dashboard() {
         </Link>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {statCards.map((stat, i) => (
-          <Card key={i} className="bg-card/50 backdrop-blur-sm border-white/5">
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">{stat.title}</p>
-                {statsLoading ? (
-                  <div className="h-8 w-16 bg-white/10 animate-pulse rounded" />
-                ) : (
-                  <h3 className="text-3xl font-bold font-display">{stat.value}</h3>
-                )}
-              </div>
-              <div className={`p-3 rounded-full bg-white/5 ${stat.color}`}>
-                <stat.icon className="w-6 h-6" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="mb-6"><OnboardingChecklist /></div>
+
+      <div className="grid lg:grid-cols-3 gap-4 mb-8">
+        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+          {statCards.map((stat, i) => (
+            <Card key={i} className="bg-card/50 backdrop-blur-sm border-white/5">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">{stat.title}</p>
+                  {statsLoading ? (
+                    <div className="h-7 w-12 bg-white/10 animate-pulse rounded" />
+                  ) : (
+                    <h3 className="text-2xl font-bold font-display">{stat.value}</h3>
+                  )}
+                </div>
+                <div className={`p-2.5 rounded-full bg-white/5 ${stat.color}`}>
+                  <stat.icon className="w-5 h-5" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <PlanUsageCard />
       </div>
 
       {/* Recent Files */}

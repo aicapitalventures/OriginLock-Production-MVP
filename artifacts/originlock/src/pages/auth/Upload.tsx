@@ -16,6 +16,7 @@ import { useDropzone } from "react-dropzone";
 import { UploadCloud, File as FileIcon, X, Loader2, UserX, CheckCircle2, Lock, Globe, Share2, GitBranch, ShieldCheck, Hash, Clock } from "lucide-react";
 import { formatBytes } from "@/lib/hash";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 const uploadSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -54,9 +55,11 @@ export function Upload() {
   const { data: projects } = useListProjects();
   const { data: allFiles } = useListFiles();
   const upload = useUploadFile();
-  
+  const { toast } = useToast();
+
   const [file, setFile] = useState<File | null>(null);
   const [successData, setSuccessData] = useState<any>(null);
+  const [planError, setPlanError] = useState<{ code: string; message: string } | null>(null);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<UploadFormValues>({
     resolver: zodResolver(uploadSchema),
@@ -83,8 +86,19 @@ export function Upload() {
     }
   });
 
+  const parseErrorBody = (err: any): { code?: string; error?: string; message?: string } => {
+    try {
+      if (err?.body) return typeof err.body === "string" ? JSON.parse(err.body) : err.body;
+      if (typeof err?.message === "string" && err.message.trim().startsWith("{")) {
+        return JSON.parse(err.message);
+      }
+    } catch {}
+    return {};
+  };
+
   const onSubmit = (data: UploadFormValues) => {
     if (!file) return;
+    setPlanError(null);
     upload.mutate({
       data: {
         file,
@@ -95,7 +109,25 @@ export function Upload() {
         parentFileId: data.parentFileId || undefined,
       }
     }, {
-      onSuccess: (res) => setSuccessData(res)
+      onSuccess: (res) => setSuccessData(res),
+      onError: (err: any) => {
+        const body = parseErrorBody(err);
+        const code = body?.code || body?.error;
+        const planCodes = ["PLAN_LIMIT_REACHED", "PLAN_FILE_SIZE_EXCEEDED", "PLAN_FEATURE_LOCKED"];
+        if (code && planCodes.includes(code)) {
+          const msg =
+            code === "PLAN_LIMIT_REACHED" ? "You've reached your plan's file limit. Upgrade to protect more files." :
+            code === "PLAN_FILE_SIZE_EXCEEDED" ? "This file exceeds your plan's size limit. Upgrade for larger files." :
+            "This feature requires a higher plan.";
+          setPlanError({ code, message: msg });
+        } else {
+          toast({
+            title: "Upload failed",
+            description: body?.error || err?.message || "Please try again.",
+            variant: "destructive",
+          });
+        }
+      },
     });
   };
 
@@ -309,6 +341,20 @@ export function Upload() {
             <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <p>Your file is hashed in your browser using SHA-256. The raw file is never sent to our servers. Only the fingerprint, size, and type metadata are stored.</p>
           </div>
+
+          {planError && (
+            <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1">
+                <p className="font-medium text-amber-500 mb-1">Upgrade required</p>
+                <p className="text-sm text-muted-foreground">{planError.message}</p>
+              </div>
+              <Link href="/pricing">
+                <Button variant="outline" className="border-amber-500/40 text-amber-500 hover:bg-amber-500/10 shrink-0">
+                  View plans
+                </Button>
+              </Link>
+            </div>
+          )}
 
           <Button type="submit" disabled={!file || upload.isPending} size="lg" className="w-full font-semibold">
             {upload.isPending 

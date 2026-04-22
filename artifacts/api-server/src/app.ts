@@ -3,6 +3,7 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
 import router from "./routes";
+import webhooksRouter from "./routes/webhooks";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -57,6 +58,9 @@ app.use(
     },
   })
 );
+
+// Mount webhooks BEFORE express.json so we can use raw body for signature verification
+app.use("/api", webhooksRouter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

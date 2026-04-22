@@ -1,0 +1,283 @@
+Run a strict OriginLock Phase 3 commercial operating build on the existing codebase.
+
+Important context:
+OriginLock is NOT a greenfield build.
+Do NOT rebuild from scratch.
+Do NOT replace working architecture unless absolutely necessary.
+Do NOT remove or regress existing flows.
+
+Current product state already includes:
+- public landing page
+- pricing page
+- verify certificate page
+- signup/login
+- dashboard
+- protect/upload flow
+- protected files list
+- projects
+- creator profile
+- settings
+- certificate generation
+- public verification
+- verification event logging
+- account deletion
+- evidence package ZIP export
+- version chain support via parentFileId
+- public creator profile route/page
+- FAQ and stronger verification authority sections
+- passing Phase 2 end-to-end tests
+
+Primary objective:
+Turn OriginLock from a strong creator-proof MVP into a launch-ready, monetizable, operator-manageable product with real plan enforcement, billing readiness, analytics, onboarding, and stronger internal visibility.
+
+Build priorities in exact order:
+
+1. Real plan enforcement
+Implement actual plan-aware product behavior, not just pricing UI.
+
+Required plans:
+- Free
+- Creator
+- Studio
+
+Required plan logic:
+- enforce configurable limits in backend and frontend
+- examples of gated/limited features:
+  - number of protected files
+  - number of projects
+  - evidence package export access if desired
+  - version-chain depth or availability if desired
+  - public creator proof profile availability if desired
+  - verification log history visibility if desired
+
+Required UI:
+- usage meter cards in dashboard/settings
+- upgrade prompts when limits are reached
+- current plan visibility in settings/account area
+- clear feature gating language
+
+Rules:
+- keep limits configurable in one central place
+- do not scatter hardcoded logic everywhere
+- keep architecture ready for future pricing changes
+
+2. Stripe billing hardening
+Move pricing from presentation into real monetization readiness.
+
+Required:
+- checkout flow for paid plan upgrades
+- success / cancel return handling
+- billing status reflected in app
+- subscription state persisted and checked server-side
+- webhook scaffold or implementation for subscription updates
+- downgrade / cancellation handling
+- billing section in settings/account page
+
+Rules:
+- preserve existing Stripe work where possible
+- use environment variables correctly
+- keep implementation safe and clean
+- do not break current app if Stripe env vars are missing; feature-flag gracefully if needed
+
+3. Admin/operator surface
+Add a protected internal admin surface for platform oversight.
+
+Required admin capabilities:
+- total users
+- total protected files
+- total certificates issued
+- total evidence package exports
+- total verification events
+- plan distribution
+- active subscriptions overview
+- recent signups
+- recent protected files activity
+- search users by email or handle
+- inspect user summary:
+  - profile
+  - counts
+  - plan
+  - public/private posture
+
+Rules:
+- admin must be protected by role/flag
+- no exposure of raw private file contents
+- no bloated CRM behavior
+- keep it clean and functional
+
+4. First-party analytics
+Add privacy-conscious internal product analytics.
+
+Track events such as:
+- signup_started
+- signup_completed
+- login_completed
+- first_project_created
+- first_file_protected
+- certificate_downloaded
+- evidence_package_downloaded
+- verification_viewed
+- pricing_viewed
+- upgrade_prompt_shown
+- checkout_started
+- checkout_completed
+- public_profile_viewed
+
+Required:
+- server-side event persistence
+- simple analytics views in admin
+- no creepy tracking
+- no ad-tech clutter
+- keep data minimal and product-focused
+
+5. Onboarding and activation flow
+Improve first-run experience so new users reach value faster.
+
+Required:
+- post-signup onboarding sequence or modal flow
+- prompt to complete creator profile
+- prompt to create first project
+- prompt to protect first file
+- dashboard onboarding checklist
+- success state after first protected file
+- clean guidance in plain English
+
+Rules:
+- no cheesy gamification
+- keep tone premium, calm, trustworthy
+- optimize for activation
+
+6. Pricing page and monetization refinement
+Upgrade the pricing page using the actual current feature set.
+
+Required:
+- make pricing fully consistent with current capabilities
+- align tier benefits with what OriginLock actually does
+- make Studio feel believable without overpromising
+- improve CTA logic:
+  - free signup
+  - upgrade flows
+  - waitlist only if a feature truly is not ready
+- tighten comparison table / feature explanation if helpful
+
+Rules:
+- no fake features
+- no inflated enterprise claims
+- keep pricing credible and clean
+
+7. Notification layer
+Add transactional product notifications.
+
+Required:
+- password reset email completion if not already functional
+- welcome email or equivalent onboarding email if environment supports it
+- billing confirmation email or in-app confirmation
+- optional notification when certificate/evidence package is generated if useful
+- notification preferences section if feasible
+
+Rules:
+- transactional and product-value notifications only
+- no spammy marketing system
+- degrade gracefully if email provider env vars are missing
+
+8. Export and account trust features
+Improve portability and trust.
+
+Required:
+- export my account metadata
+- export my project/file metadata
+- export verification history if feasible
+- clearer deletion consequences and confirmation UX
+- optional “download all records” request flow if manageable
+
+Rules:
+- do not include raw private uploaded files unless intentionally supported
+- maintain current privacy posture
+- keep exports machine-readable and human-readable where practical
+
+9. Public trust and launch hardening
+Do a serious launch-readiness pass across public and authenticated surfaces.
+
+Required:
+- remove remaining weak dev/demo traces where possible
+- improve legal/footer consistency
+- improve metadata / SEO basics on public pages
+- improve empty states
+- improve error states
+- improve loading states
+- improve upgrade/paywall states
+- validate mobile responsiveness on:
+  - landing
+  - pricing
+  - verify
+  - login/signup
+  - dashboard basics
+
+Keep repeating calm, accurate language:
+- OriginLock provides cryptographic proof of existence and timestamped records
+- it is not a replacement for formal copyright registration
+- it does not provide legal advice
+
+10. QA and release prep
+Run a full regression and hardening pass.
+
+Required:
+- verify all prior MVP flows still work
+- verify Phase 2 features still work
+- verify billing guards
+- verify plan enforcement
+- verify onboarding
+- verify admin route protection
+- verify analytics events are recorded
+- verify exports work
+- verify account deletion still works
+- verify public/private creator profile rules work
+- verify evidence package export still works
+- verify version chain still works
+
+Technical requirements:
+- keep architecture stable
+- extend schema cleanly
+- write migrations safely
+- preserve working routes where possible
+- keep code maintainable
+- do not add unnecessary enterprise complexity
+- do not turn OriginLock into generic cloud storage
+- do not make false legal claims
+- do not regress privacy posture
+
+Design requirements:
+- preserve OriginLock visual identity
+- use current brand assets and established style
+- dark premium aesthetic
+- restrained authority
+- improve confidence, clarity, and usability
+- admin can be simpler visually, but must remain clean
+
+Guardrails:
+- do not rebuild the product
+- do not expand into marketplace features
+- do not add raw file cloud-storage complexity
+- do not add team collaboration sprawl yet beyond Studio signaling
+- do not invent legal or regulatory claims
+
+Definition of done:
+- plan enforcement works
+- Stripe upgrade flow is implemented or feature-flagged cleanly
+- billing/account state is visible
+- admin surface exists and is protected
+- first-party analytics are captured and viewable
+- onboarding flow improves activation
+- pricing is aligned with actual features
+- transactional notification layer is functional or safely feature-flagged
+- export/account trust features work
+- no regressions in MVP or Phase 2 functionality
+
+At the end:
+1. provide a full QA report
+2. list all schema changes
+3. list all new routes/pages/components
+4. list all billing-related environment variables and setup required
+5. list all notification/email environment variables and setup required
+6. list remaining known limitations
+7. recommend the best Phase 4 build path after completion

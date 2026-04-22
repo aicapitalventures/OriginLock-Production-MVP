@@ -1,11 +1,13 @@
 import { Router, type IRouter } from "express";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, desc } from "drizzle-orm";
 import { db, projectsTable, fileRecordsTable } from "@workspace/db";
 import {
   CreateProjectBody,
   UpdateProjectBody,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../lib/auth";
+import { getUserUsage, checkLimit } from "../lib/usage";
+import { recordEvent } from "../lib/analytics";
 
 const router: IRouter = Router();
 
@@ -51,6 +53,17 @@ router.post(
       return;
     }
 
+    const usage = await getUserUsage(req.userId!);
+    if (!checkLimit(usage.projects.used, usage.projects.limit)) {
+      res.status(402).json({
+        error: "PLAN_LIMIT_REACHED",
+        scope: "projects",
+        message: `Your ${usage.plan.name} plan allows ${usage.projects.limit} project${usage.projects.limit === 1 ? "" : "s"}. Upgrade to add more.`,
+        plan: usage.plan,
+      });
+      return;
+    }
+
     const [project] = await db
       .insert(projectsTable)
       .values({
@@ -58,6 +71,12 @@ router.post(
         ...parsed.data,
       })
       .returning();
+
+    if (usage.projects.used === 0) {
+      await recordEvent("first_project_created", req.userId!, { projectId: project.id });
+    } else {
+      await recordEvent("project_created", req.userId!, { projectId: project.id });
+    }
 
     res.status(201).json({ ...project, fileCount: 0 });
   }

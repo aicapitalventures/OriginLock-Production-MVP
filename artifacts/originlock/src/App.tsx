@@ -24,6 +24,11 @@ import { Projects } from "@/pages/auth/Projects";
 import { ProjectDetail } from "@/pages/auth/ProjectDetail";
 import { Profile } from "@/pages/auth/Profile";
 import { Settings } from "@/pages/auth/Settings";
+import { BillingSuccess } from "@/pages/auth/BillingSuccess";
+import { BillingCancel } from "@/pages/auth/BillingCancel";
+import { AdminStats } from "@/pages/admin/AdminStats";
+import { AdminUsers } from "@/pages/admin/AdminUsers";
+import { AdminUserDetail } from "@/pages/admin/AdminUserDetail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +77,23 @@ function Router() {
       </Route>
       <Route path="/dashboard/settings">
         <ProtectedRoute><Settings /></ProtectedRoute>
+      </Route>
+
+      <Route path="/billing/success">
+        <ProtectedRoute><BillingSuccess /></ProtectedRoute>
+      </Route>
+      <Route path="/billing/cancel">
+        <ProtectedRoute><BillingCancel /></ProtectedRoute>
+      </Route>
+
+      <Route path="/admin">
+        <ProtectedRoute><AdminStats /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/users">
+        <ProtectedRoute><AdminUsers /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/users/:id">
+        <ProtectedRoute><AdminUserDetail /></ProtectedRoute>
       </Route>
 
       <Route component={NotFound} />

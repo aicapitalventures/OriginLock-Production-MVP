@@ -17,6 +17,14 @@ export const usersTable = pgTable("users", {
   passwordResetExpiresAt: timestamp("password_reset_expires_at", {
     withTimezone: true,
   }),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  subscriptionTier: text("subscription_tier").notNull().default("free"),
+  subscriptionStatus: text("subscription_status"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionCurrentPeriodEnd: timestamp("subscription_current_period_end", {
+    withTimezone: true,
+  }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

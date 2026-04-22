@@ -6,3 +6,5 @@ export * from "./timestamp_records";
 export * from "./certificates";
 export * from "./verification_events";
 export * from "./audit_logs";
+export * from "./analytics_events";
+export * from "./notification_preferences";

@@ -10,6 +10,8 @@ import {
   ResetPasswordBody,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../lib/auth";
+import { recordEvent } from "../lib/analytics";
+import { sendEmail, welcomeEmail, emailEnabled } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -41,6 +43,9 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     emailVerified: user.emailVerified,
     createdAt: user.createdAt,
     hasProfile: !!profile,
+    isAdmin: user.isAdmin,
+    subscriptionTier: user.subscriptionTier,
+    subscriptionStatus: user.subscriptionStatus,
   });
 });
 
@@ -76,6 +81,12 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   const session = (req as any).session;
   session.userId = user.id;
   session.userEmail = user.email;
+
+  await recordEvent("signup_completed", user.id, { email: user.email });
+  if (emailEnabled()) {
+    const { subject, html } = welcomeEmail("");
+    sendEmail({ to: user.email, subject, html }).catch(() => {});
+  }
 
   res.status(201).json({
     user: {
@@ -122,6 +133,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   const session = (req as any).session;
   session.userId = user.id;
   session.userEmail = user.email;
+
+  await recordEvent("login_completed", user.id, {});
 
   res.json({
     user: {
