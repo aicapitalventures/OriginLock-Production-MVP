@@ -1,0 +1,240 @@
+Run a strict OriginLock Phase 2 build and brand hardening pass on the existing codebase.
+
+Important context:
+This is NOT a greenfield build.
+OriginLock already has a working MVP with:
+- landing page
+- pricing page
+- verify certificate page
+- signup/login
+- dashboard
+- file upload / protect flow
+- protected files list
+- projects
+- creator profile
+- settings
+- certificate generation
+- public verification
+- verification event logging
+
+Do NOT rebuild from scratch.
+Do NOT replace working architecture unless absolutely necessary.
+Do NOT break any working MVP flows.
+
+Primary objective:
+Take the current OriginLock MVP and turn it into a stronger, more trustworthy, more differentiated creator-proof platform by improving branding, trust, evidence workflow, and competitive edge.
+
+You must use the uploaded OriginLock brand assets as the source of truth:
+- lockup logo
+- icon/logo
+- wordmark
+
+Apply those assets consistently across:
+- public navbar
+- login/signup screens
+- dashboard sidebar/header
+- favicon/app icon if supported
+- verification pages
+- any branded empty states
+- pricing page
+- legal/footer surfaces where appropriate
+
+Brand and visual requirements:
+- preserve the current premium dark aesthetic
+- deep navy / near-black base
+- cyan/teal accent
+- restrained, premium, institutional feel
+- no generic startup redesign
+- no cartoonish SaaS visuals
+- no clutter
+- make it feel more like trust infrastructure than a basic file app
+
+Top priorities in exact order:
+
+1. Brand hardening and polish
+- replace any placeholder branding with the uploaded OriginLock assets
+- ensure consistent logo usage rules:
+  - use icon + wordmark in navbars and sidebar where appropriate
+  - use icon standalone for favicon/app mark where needed
+- improve spacing, visual consistency, and hierarchy across public and authenticated surfaces
+- remove or suppress weak development-facing traces where possible
+- prepare the app visually for a real published product
+
+2. Verification authority upgrade
+Upgrade the public certificate verification flow so it feels decisive and authoritative.
+
+Required:
+- stronger verification result page
+- display:
+  - certificate ID
+  - issue date/time
+  - proof status
+  - file hash
+  - file type
+  - file size if available
+  - creator attribution if public
+  - project name if available
+  - privacy status
+  - downloadable certificate
+- add a clean “What this proves” section
+- add a clean “What this does not prove” section
+- use careful, non-exaggerated legal language
+- make the page look premium and institutional
+
+3. Evidence package export
+Add a server-generated “Evidence Package” export.
+
+Required:
+- user can download an evidence ZIP from file detail / certificate detail
+- package must include:
+  - certificate PDF
+  - metadata JSON
+  - certificate ID
+  - file hash
+  - timestamp
+  - creator attribution snapshot if available
+  - project metadata if available
+  - plain-English verification instructions
+- do NOT include raw private uploaded file contents
+- preserve privacy posture
+
+4. Version chain / revision continuity
+Add a clean version-linking feature so users can protect:
+- original work
+- later versions of that same work
+
+Required:
+- optional link to prior protected file during upload
+- store parent-child version relationship
+- show version history on file detail page
+- label versions clearly:
+  - Original
+  - Version 2
+  - Version 3
+- keep the UX clean and minimal
+- this is proof continuity, not full document management
+
+5. Creator proof profile upgrade
+Strengthen the creator profile into a trust layer.
+
+Required:
+- optional public creator profile
+- public display name
+- handle
+- optional bio
+- optional website
+- optional list of public proofs / public projects
+- privacy controls must remain explicit and safe
+- private remains default unless user opts in
+
+6. Pricing page upgrade
+Take the current pricing page and make it stronger and more realistic.
+
+Required:
+- keep the current tier structure direction, but polish it heavily
+- tiers:
+  - Free
+  - Creator
+  - Studio (replace “Pro” if Studio fits better)
+- feature copy must be clearer and more compelling
+- make the pricing page feel launch-ready
+- keep legal disclaimer language careful
+- if billing is not wired yet, keep pricing presentation-only but make it believable and production-grade
+
+7. Upload / protect flow polish
+Improve the “Protect a File” experience.
+
+Required:
+- stronger trust cues
+- clearer explanation of privacy options:
+  - Private
+  - Shareable
+  - Public
+- better helper text around what happens after upload
+- cleaner project association UX
+- better empty/error/success states
+- preserve current supported file types and working behavior
+
+8. Dashboard and file management polish
+Improve:
+- dashboard overview clarity
+- recent files list readability
+- file badges / privacy indicators
+- project empty states
+- file list hierarchy
+- status clarity
+- reduce anything that feels rough or MVP-only
+
+9. Settings completion
+Finish the settings experience.
+
+Required:
+- fully implement account deletion flow with confirmation safeguards
+- improve password change flow if incomplete
+- clarify consequences of deletion
+- maintain trust-centered language
+
+10. Launch trust pass across public site
+Strengthen public-facing pages:
+- landing page
+- verify page
+- pricing page
+- login/signup pages
+- footer/legal surfaces
+
+Required:
+- better FAQ content
+- stronger trust microcopy
+- calm legal clarity
+- no inflated claims
+- repeated clear message:
+  - OriginLock provides cryptographic proof of existence and timestamped records
+  - It does not replace formal copyright registration
+  - It does not provide legal advice
+
+Technical requirements:
+- preserve current architecture
+- extend schema cleanly if needed
+- write migrations safely
+- preserve all existing working routes and flows
+- do not remove verified MVP functionality
+- maintain secure route protection
+- do not store raw private files unnecessarily
+- keep verification pages safe for public view
+- do not add unnecessary enterprise complexity yet
+
+Design requirements:
+- use uploaded OriginLock assets correctly
+- keep consistent branding across the product
+- improve premium feel without bloating the UI
+- increase trust, clarity, and professionalism
+- mobile responsive where relevant
+
+Guardrails:
+- do not rebuild from scratch
+- do not change the product category
+- do not turn OriginLock into generic cloud storage
+- do not introduce fake legal claims
+- do not overcomplicate collaboration/team features yet
+- do not break current MVP functionality
+
+Definition of done:
+- uploaded OriginLock brand assets are applied consistently
+- verification result page is upgraded
+- evidence package export works
+- version chain works
+- creator proof profile is upgraded
+- pricing page is polished and credible
+- protect/upload flow is stronger
+- dashboard/file management is cleaner
+- settings/account deletion is implemented
+- public trust layer is materially improved
+- existing MVP flows still work
+
+At the end:
+1. provide a full QA report
+2. list all schema changes
+3. list all new routes/pages/components
+4. list where each uploaded brand asset was applied
+5. list remaining known limitations
+6. recommend the best next Phase 3 build after completion

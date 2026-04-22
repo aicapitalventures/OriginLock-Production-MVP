@@ -1,0 +1,284 @@
+Update the existing OriginLock application to implement a production-grade onboarding and activation system centered on one core outcome.
+
+PRIMARY PRODUCT GOAL:
+The product is not successful when a user signs up.
+The product is successful when the user locks their first file.
+
+ACTIVATION EVENT:
+“First certificate generated”
+
+Everything in the onboarding flow should drive the user toward generating their first certificate as fast and cleanly as possible.
+
+BRAND IDENTITY SYSTEM — ORIGINLOCK v1.0 (MANDATORY)
+
+The application must strictly follow the OriginLock Brand Identity System v1.0.
+
+Brand tone:
+- calm
+- precise
+- minimal
+- authoritative
+- non-hype
+
+Visual rules:
+- dark navy primary background (#060814)
+- graphite secondary surfaces (#0F172A)
+- white primary text
+- muted gray secondary text (#9CA3AF)
+- cyan accent (#00E5FF) used sparingly (5–10%)
+
+Typography:
+- clean sans-serif (Inter or equivalent)
+- all caps for major headings where appropriate
+- slightly spaced lettering for brand text (ORIGINLOCK)
+
+UI rules:
+- no clutter
+- no bright gradients
+- no playful or childish styling
+- minimal, premium, infrastructure-level feel
+- soft shadows only
+- strong spacing and hierarchy
+
+Logo usage:
+- use the provided OriginLock logo asset across the application
+- place logo in:
+  - landing page header
+  - authentication pages
+  - dashboard header
+  - first-action upload screen
+- do not distort, recolor, or replace the logo
+- maintain high contrast and proper spacing
+
+Voice and language:
+- short, direct sentences
+- no buzzwords
+- no hype language
+- no “AI”, “revolutionary”, or marketing fluff
+- prioritize clarity and authority
+
+Core language to use:
+- proof
+- lock
+- send
+- verify
+
+Core language to avoid:
+- blockchain (unless explicitly needed)
+- disruptive
+- cutting-edge
+- innovative (generic marketing tone)
+
+All UI, copy, and components must align with this identity.
+Do not introduce styles or language that conflict with this system.
+
+IMPORTANT BRAND INSTRUCTION:
+Use the provided OriginLock logo asset throughout the site.
+Incorporate the uploaded logo into:
+- landing page header / hero area
+- login page
+- signup page
+- first-action upload screen
+- dashboard header
+- favicon/app branding areas where appropriate
+
+Do not redesign the logo.
+Do not replace it with placeholder branding.
+Use the existing dark premium visual language and make the logo feel native to the UI.
+
+ONBOARDING + ACTIVATION SYSTEM REQUIREMENTS
+
+1. DEFINE THE GOAL CLEARLY IN THE UX
+The UX should be optimized for one outcome:
+the user locks their first file.
+
+Do not optimize onboarding around profile completion, exploration, or settings.
+Optimize around immediate action and immediate value.
+
+2. ACTIVATION FLOW END TO END
+
+STEP 1 — LANDING PAGE
+
+Headline:
+Lock your proof before you send
+
+Primary CTA:
+Protect a file
+
+This CTA should push the user into the signup flow or directly into the protected first-action flow if already authenticated.
+
+STEP 2 — SIGNUP
+
+Required fields only:
+- email
+- password
+
+Do not ask for:
+- profile setup
+- handle
+- extra metadata
+- unnecessary fields
+
+AFTER SIGNUP:
+Do not send the user to the general dashboard first.
+Send them directly into the first-action upload experience.
+
+3. FIRST ACTION FLOW
+
+Screen title:
+Lock your first file
+
+Subtext:
+Takes 30 seconds.
+You’ll get a proof certificate instantly.
+
+UI requirements:
+- centered layout
+- simple drag-and-drop upload box
+- click-to-browse support
+- minimal distractions
+- visually premium, clean, dark, trustworthy
+- include OriginLock logo at top of screen
+
+Reinforcement text:
+- Your file is fingerprinted
+- Timestamped instantly
+- Private and secure
+
+Add:
+Nothing is shared. This only creates your proof.
+
+4. LOADING STATE
+
+Show staged messaging:
+- Generating fingerprint…
+- Locking timestamp…
+- Creating certificate…
+
+Do not use generic loaders alone.
+
+5. SUCCESS SCREEN
+
+Headline:
+Your proof is locked.
+
+Show:
+- certificate ID
+- timestamp
+- file name
+
+Buttons:
+- Download certificate
+- View verification page
+
+Add:
+You now have proof this existed at this moment.
+
+6. VIRAL TRIGGER
+
+Section:
+Share your proof
+
+Copy:
+Locked before I sent this.
+OriginLock.
+
+Implement copy-to-clipboard.
+
+7. POST-ACTIVATION FLOW
+
+Dashboard must immediately show:
+- uploaded file
+- certificate
+- timestamp
+
+CTA:
+Lock another file
+
+8. RETENTION MESSAGE
+
+Display:
+Don’t send your next file unprotected.
+
+9. EMAIL PREP STRUCTURE
+
+Prepare structure for:
+Email 1:
+Your proof is locked
+
+Email 2:
+Most creators forget this step.
+Don’t send your next file unprotected.
+
+10. FRICTION RULES
+
+NEVER:
+- force profile creation
+- ask unnecessary questions
+- show empty dashboards
+- delay upload
+
+ALWAYS:
+- guide to first action
+- reduce thinking
+- show value immediately
+
+11. ACTIVATION METRIC
+
+Track:
+- signup
+- first upload
+- first certificate generation
+
+Target:
+40–60% activation rate
+
+12. PRODUCT PHILOSOPHY
+
+Users should feel value instantly.
+No learning curve before value.
+
+TECHNICAL IMPLEMENTATION REQUIREMENTS
+
+- do not break existing auth, upload, certificate, or verification flows
+- reuse backend logic where possible
+- clean component and route updates
+- ensure routing logic:
+
+IF user has zero files:
+→ route to first-action upload screen
+
+IF user has files:
+→ route to dashboard
+
+CRITICAL IMPLEMENTATION CLARIFICATIONS
+
+Logo handling:
+- ensure logo file is properly imported and referenced
+- do not use placeholder images
+- confirm it renders correctly everywhere
+
+Routing logic:
+- implement condition for first-time vs returning users
+
+Tracking:
+- implement simple internal logging for activation events if no analytics tool exists
+
+DELIVERABLE
+
+A fully working onboarding and activation system.
+
+Definition of success:
+- user signs up
+- user is immediately taken to upload
+- user uploads file
+- user sees staged loading
+- user sees success screen
+- user downloads certificate or views verification
+- user lands in populated dashboard
+- logo is consistently applied
+- no runtime errors
+
+Do not redesign the entire application.
+Do not add unrelated features.
+Focus strictly on onboarding, activation, brand consistency, and stability.
