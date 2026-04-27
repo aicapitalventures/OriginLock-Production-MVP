@@ -8,6 +8,17 @@ import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
+// Trusted origin for Stripe redirect URLs. We never use req.headers.origin
+// because it is attacker-controlled and could be used to redirect users to
+// arbitrary URLs after checkout. Production picks the first configured
+// REPLIT_DOMAINS entry; falls back to localhost for dev.
+function getTrustedOrigin(): string {
+  if (process.env.PUBLIC_APP_URL) return process.env.PUBLIC_APP_URL.replace(/\/$/, "");
+  const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
+  if (domain) return `https://${domain}`;
+  return "http://localhost:5000";
+}
+
 router.get("/billing/status", async (_req, res): Promise<void> => {
   res.json({ stripeEnabled: stripeEnabled() });
 });
@@ -33,28 +44,50 @@ router.post(
       return;
     }
 
-    const origin = req.headers.origin || `https://${process.env.REPLIT_DOMAINS?.split(",")[0] ?? "localhost"}`;
+    // Guard: block new checkout when user already has an active paid subscription.
+    // Tier change should go through the billing portal instead.
+    if (
+      user.stripeSubscriptionId &&
+      user.subscriptionTier &&
+      user.subscriptionTier !== "free" &&
+      ["active", "past_due", "incomplete"].includes(user.subscriptionStatus || "")
+    ) {
+      res.status(409).json({
+        error: "ALREADY_SUBSCRIBED",
+        message: "You already have an active subscription. Use the billing portal to change plans.",
+      });
+      return;
+    }
+
+    const origin = getTrustedOrigin();
 
     try {
       const stripe = getStripe();
       let customerId = user.stripeCustomerId;
       if (!customerId) {
-        const customer = await stripe.customers.create({
-          email: user.email,
-          metadata: { userId: user.id },
-        });
+        const customer = await stripe.customers.create(
+          { email: user.email, metadata: { userId: user.id } },
+          { idempotencyKey: `customer_create_${user.id}` }
+        );
         customerId = customer.id;
         await db.update(usersTable).set({ stripeCustomerId: customerId }).where(eq(usersTable.id, user.id));
       }
 
-      const session = await stripe.checkout.sessions.create({
-        mode: "subscription",
-        customer: customerId,
-        line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/billing/cancel`,
-        metadata: { userId: user.id, tier },
-      });
+      // Idempotency key per user+tier+minute window — protects against double-clicks
+      // creating multiple Checkout Sessions / subscriptions.
+      const idempotencyKey = `checkout_${user.id}_${tier}_${Math.floor(Date.now() / 60000)}`;
+
+      const session = await stripe.checkout.sessions.create(
+        {
+          mode: "subscription",
+          customer: customerId,
+          line_items: [{ price: priceId, quantity: 1 }],
+          success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${origin}/billing/cancel`,
+          metadata: { userId: user.id, tier },
+        },
+        { idempotencyKey }
+      );
 
       await recordEvent("checkout_started", user.id, { tier });
       res.json({ url: session.url });
@@ -78,7 +111,7 @@ router.post(
       res.status(400).json({ error: "No subscription on file" });
       return;
     }
-    const origin = req.headers.origin || `https://${process.env.REPLIT_DOMAINS?.split(",")[0] ?? "localhost"}`;
+    const origin = getTrustedOrigin();
     try {
       const stripe = getStripe();
       const portal = await stripe.billingPortal.sessions.create({

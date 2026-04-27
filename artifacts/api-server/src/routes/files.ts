@@ -37,9 +37,13 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/jpg": "jpg",
 };
 
+// Hard ceiling matches the largest paid plan (Studio = 1GB).
+// Per-plan enforcement happens in preflightSizeGuard + post-upload check below.
+const MAX_UPLOAD_BYTES = 1024 * 1024 * 1024;
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024 },
+  limits: { fileSize: MAX_UPLOAD_BYTES },
   fileFilter: (_req, file, cb) => {
     if (ALLOWED_TYPES[file.mimetype]) {
       cb(null, true);
@@ -48,6 +52,33 @@ const upload = multer({
     }
   },
 });
+
+// Reject oversized uploads BEFORE any bytes hit memory by checking Content-Length
+// against the user's plan limit. Also yields a clean 402 instead of multer's
+// generic "File too large" stream error.
+async function preflightSizeGuard(
+  req: AuthenticatedRequest,
+  res: import("express").Response,
+  next: import("express").NextFunction
+): Promise<void> {
+  try {
+    const usage = await getUserUsage(req.userId!);
+    const planMaxBytes = usage.plan.maxFileSizeMb * 1024 * 1024;
+    const contentLength = Number(req.headers["content-length"] || 0);
+    if (contentLength > 0 && contentLength > planMaxBytes) {
+      res.status(402).json({
+        error: "PLAN_FILE_SIZE_EXCEEDED",
+        scope: "fileSize",
+        message: `Your ${usage.plan.name} plan allows files up to ${usage.plan.maxFileSizeMb}MB.`,
+        plan: usage.plan,
+      });
+      return;
+    }
+    next();
+  } catch (err) {
+    next(err as Error);
+  }
+}
 
 function buildFileResponse(
   f: typeof fileRecordsTable.$inferSelect,
@@ -119,6 +150,7 @@ router.get(
 router.post(
   "/files/upload",
   requireAuth,
+  preflightSizeGuard,
   upload.single("file"),
   async (req: AuthenticatedRequest, res): Promise<void> => {
     if (!req.file) {

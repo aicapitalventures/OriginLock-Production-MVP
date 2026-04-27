@@ -38,22 +38,51 @@ router.post(
       return;
     }
 
+    // Normalize raw Stripe subscription status to our compact UI contract.
+    // We expose: active | past_due | canceled | unpaid | incomplete
+    const normalizeStatus = (s: string | undefined | null): string => {
+      switch (s) {
+        case "active":
+        case "trialing":
+          return "active";
+        case "past_due":
+          return "past_due";
+        case "canceled":
+        case "incomplete_expired":
+          return "canceled";
+        case "unpaid":
+          return "unpaid";
+        case "incomplete":
+        case "paused":
+          return "incomplete";
+        default:
+          return s || "incomplete";
+      }
+    };
+
+    const tierFromPriceId = (priceId: string | undefined): "creator" | "studio" | null => {
+      if (!priceId) return null;
+      if (priceId === process.env.STRIPE_PRICE_CREATOR) return "creator";
+      if (priceId === process.env.STRIPE_PRICE_STUDIO) return "studio";
+      return null;
+    };
+
     try {
       switch (event.type) {
         case "checkout.session.completed": {
+          // Confirmation/email + link customer/subscription IDs ONLY.
+          // Tier + status are owned by customer.subscription.* events to avoid race conditions.
           const session = event.data.object as any;
           const userId = session.metadata?.userId;
           const tier = session.metadata?.tier;
-          if (userId && tier) {
+          if (userId) {
             await db.update(usersTable).set({
-              subscriptionTier: tier,
-              subscriptionStatus: "active",
-              stripeSubscriptionId: session.subscription,
+              stripeSubscriptionId: session.subscription || null,
               stripeCustomerId: session.customer,
             }).where(eq(usersTable.id, userId));
             await recordEvent("checkout_completed", userId, { tier });
             const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-            if (user && emailEnabled()) {
+            if (user && emailEnabled() && tier) {
               const { subject, html } = billingConfirmationEmail(tier);
               await sendEmail({ to: user.email, subject, html });
             }
@@ -63,22 +92,22 @@ router.post(
         case "customer.subscription.created":
         case "customer.subscription.updated":
         case "customer.subscription.deleted": {
+          // Authoritative source of tier + status. Always derives from the
+          // current subscription object, so out-of-order delivery is safe
+          // (the latest event always reflects current state).
           const sub = event.data.object as any;
           const customerId = sub.customer;
-          const status = sub.status;
+          if (!customerId) break;
           const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
 
-          // Map price id -> tier
-          const priceId = sub.items?.data?.[0]?.price?.id;
-          let tier: string | null = null;
-          if (priceId === process.env.STRIPE_PRICE_CREATOR) tier = "creator";
-          else if (priceId === process.env.STRIPE_PRICE_STUDIO) tier = "studio";
+          const tier = tierFromPriceId(sub.items?.data?.[0]?.price?.id);
+          const normalized = normalizeStatus(sub.status);
 
           const update: Record<string, unknown> = {
-            subscriptionStatus: status,
+            subscriptionStatus: normalized,
             subscriptionCurrentPeriodEnd: periodEnd,
           };
-          if (event.type === "customer.subscription.deleted" || status === "canceled" || status === "incomplete_expired" || status === "unpaid") {
+          if (event.type === "customer.subscription.deleted" || normalized === "canceled") {
             update.subscriptionTier = "free";
             update.stripeSubscriptionId = null;
           } else if (tier) {
