@@ -1,0 +1,75 @@
+Run a production hardening pass on OriginLock based on the current codebase.
+
+Do not redesign the app.
+Do not add unrelated features.
+Fix only launch-blocking issues.
+
+Required fixes:
+
+1. Correct all privacy copy.
+The app currently says files are hashed locally and raw files never leave the device. That is inaccurate because the backend receives the file in memory through multer and hashes server-side.
+Replace all misleading copy with:
+“Your file is processed in memory to generate a SHA-256 fingerprint. OriginLock does not permanently store your original file.”
+Apply this to Landing, Pricing FAQ, Upload page, and any other location with incorrect local-hashing claims.
+
+2. Complete onboarding activation flow.
+After signup, do not route users to dashboard/profile first unless absolutely required.
+Implement the shortest valid path to first certificate:
+- signup
+- lightweight creator profile creation if required
+- first upload screen
+- certificate success screen
+If profile is required for certificates, create a minimal post-signup profile step with display name and handle only, then route immediately to upload.
+Do not force project creation before first upload.
+
+3. Fix evidence package download.
+In FileDetail.tsx, customFetch already returns a Blob for application/zip responses.
+Remove the extra .blob() call and explicitly request responseType: "blob".
+
+4. Fix account export verification event bug.
+In exportData.ts, query verificationEventsTable using certificateDbId, not certificateId.
+
+5. Lock production CORS.
+In app.ts, do not allow all origins by default.
+Only allow configured Replit/domain origins and local dev origins.
+Reject unknown origins in production.
+
+6. Require SESSION_SECRET in production.
+Do not use the fallback dev secret when NODE_ENV is production.
+Throw a clear startup error if SESSION_SECRET is missing.
+
+7. Gate public creator profile by plan.
+The plan config says public profiles require Creator+.
+Ensure Free users cannot enable public creator profile, or show upgrade prompt when attempting to enable it.
+
+8. Audit pricing page claims.
+Ensure every listed feature is either:
+- fully implemented
+- correctly gated
+- or clearly marked as coming soon
+Do not list unavailable features as live.
+
+9. Confirm Stripe billing readiness.
+Do not fake paid plan availability.
+If Stripe env vars are missing, keep paid checkout unavailable and clearly label paid plans as not yet live.
+If Stripe env vars are present, ensure checkout and webhook flow update subscriptionTier correctly.
+
+10. Run final validation.
+Confirm:
+- signup works
+- minimal profile works
+- upload works
+- certificate PDF downloads
+- verification works
+- evidence package downloads
+- export account works
+- free limits enforce
+- Creator/Studio checkout only activates when Stripe is configured
+- no console/runtime errors
+
+Return a structured report:
+A. files changed
+B. bugs fixed
+C. remaining launch blockers
+D. whether OriginLock is beta-ready
+E. whether OriginLock is paid-launch-ready
