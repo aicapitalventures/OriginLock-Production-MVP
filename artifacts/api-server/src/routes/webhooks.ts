@@ -60,6 +60,7 @@ router.post(
           }
           break;
         }
+        case "customer.subscription.created":
         case "customer.subscription.updated":
         case "customer.subscription.deleted": {
           const sub = event.data.object as any;
@@ -77,13 +78,46 @@ router.post(
             subscriptionStatus: status,
             subscriptionCurrentPeriodEnd: periodEnd,
           };
-          if (event.type === "customer.subscription.deleted" || status === "canceled") {
+          if (event.type === "customer.subscription.deleted" || status === "canceled" || status === "incomplete_expired" || status === "unpaid") {
             update.subscriptionTier = "free";
             update.stripeSubscriptionId = null;
           } else if (tier) {
             update.subscriptionTier = tier;
+            update.stripeSubscriptionId = sub.id;
           }
           await db.update(usersTable).set(update).where(eq(usersTable.stripeCustomerId, customerId));
+          break;
+        }
+        case "invoice.payment_succeeded": {
+          const invoice = event.data.object as any;
+          const customerId = invoice.customer;
+          if (customerId) {
+            await db
+              .update(usersTable)
+              .set({ subscriptionStatus: "active" })
+              .where(eq(usersTable.stripeCustomerId, customerId));
+            const [u] = await db
+              .select({ id: usersTable.id })
+              .from(usersTable)
+              .where(eq(usersTable.stripeCustomerId, customerId));
+            if (u) await recordEvent("invoice_paid", u.id, { amount: invoice.amount_paid });
+          }
+          break;
+        }
+        case "invoice.payment_failed": {
+          const invoice = event.data.object as any;
+          const customerId = invoice.customer;
+          if (customerId) {
+            await db
+              .update(usersTable)
+              .set({ subscriptionStatus: "past_due" })
+              .where(eq(usersTable.stripeCustomerId, customerId));
+            const [u] = await db
+              .select({ id: usersTable.id })
+              .from(usersTable)
+              .where(eq(usersTable.stripeCustomerId, customerId));
+            if (u) await recordEvent("invoice_failed", u.id, { amount: invoice.amount_due });
+          }
           break;
         }
       }
